@@ -907,7 +907,7 @@ void tsm_screen_clear_sb(struct tsm_screen *con)
 SHL_EXPORT
 void tsm_screen_sb_up(struct tsm_screen *con, unsigned int num)
 {
-	if (!con || !num)
+	if (!con || !num || (con->flags & TSM_SCREEN_ALTERNATE))
 		return;
 
 	screen_inc_age(con);
@@ -931,7 +931,7 @@ void tsm_screen_sb_up(struct tsm_screen *con, unsigned int num)
 SHL_EXPORT
 void tsm_screen_sb_down(struct tsm_screen *con, unsigned int num)
 {
-	if (!con || !num)
+	if (!con || !num  || (con->flags & TSM_SCREEN_ALTERNATE))
 		return;
 
 	screen_inc_age(con);

@@ -18,7 +18,11 @@ struct width_interval {
 };
 
 // From https://github.com/jquast/wcwidth/blob/master/wcwidth/table_zero.py
-// at commit 0d7de112202cc8b2ebe9232ff4a5c954f19d561a (2016-07-02):
+// at commit 0d7de112202cc8b2ebe9232ff4a5c954f19d561a (2016-07-02)
+
+// Nerd Fonts code points from
+// https://github.com/ryanoasis/nerd-fonts/wiki/Glyph-Sets-and-Code-Points
+
 static struct width_interval ZERO_WIDTH[] = {
         {0x0300, 0x036f},  // Combining Grave Accent  ..Combining Latin Small Le
         {0x0483, 0x0489},  // Combining Cyrillic Titlo..Combining Cyrillic Milli
@@ -314,12 +318,15 @@ static struct width_interval WIDE_EASTASIAN[] = {
         {0x23e9, 0x23ec},  // Black Right-pointing Dou..Black Down-pointing Doub
         {0x23f0, 0x23f0},  // Alarm Clock             ..Alarm Clock
         {0x23f3, 0x23f3},  // Hourglass With Flowing S..Hourglass With Flowing S
+        {0x23fb, 0x23fe},  // Nerd Fonts IEC Power Symbols
         {0x25fd, 0x25fe},  // White Medium Small Squar..Black Medium Small Squar
         {0x2614, 0x2615},  // Umbrella With Rain Drops..Hot Beverage
         {0x2648, 0x2653},  // Aries                   ..Pisces
+        {0x2665, 0x2665},  // Nerd Fonts Octicons
         {0x267f, 0x267f},  // Wheelchair Symbol       ..Wheelchair Symbol
         {0x2693, 0x2693},  // Anch||                  ..Anch||
         {0x26a1, 0x26a1},  // High Voltage Sign       ..High Voltage Sign
+        // {0x26a1, 0x26a1},  // Nerd Fonts Octicons (covered in previous range)
         {0x26aa, 0x26ab},  // Medium White Circle     ..Medium Black Circle
         {0x26bd, 0x26be},  // Soccer Ball             ..Baseball
         {0x26c4, 0x26c5},  // Snowman Without Snow    ..Sun Behind Cloud
@@ -343,6 +350,7 @@ static struct width_interval WIDE_EASTASIAN[] = {
         {0x2b1b, 0x2b1c},  // Black Large Square      ..White Large Square
         {0x2b50, 0x2b50},  // White Medium Star       ..White Medium Star
         {0x2b55, 0x2b55},  // Heavy Large Circle      ..Heavy Large Circle
+        {0x2b58, 0x2b58},  // Nerd Fonts IEC Power Symbols
         {0x2e80, 0x2e99},  // Cjk Radical Repeat      ..Cjk Radical Rap
         {0x2e9b, 0x2ef3},  // Cjk Radical Choke       ..Cjk Radical C-simplified
         {0x2f00, 0x2fd5},  // Kangxi Radical One      ..Kangxi Radical Flute
@@ -362,6 +370,20 @@ static struct width_interval WIDE_EASTASIAN[] = {
         {0xa490, 0xa4c6},  // Yi Radical Qot          ..Yi Radical Ke
         {0xa960, 0xa97c},  // Hangul Choseong Tikeut-m..Hangul Choseong Ssangyeo
         {0xac00, 0xd7a3},  // Hangul Syllable Ga      ..Hangul Syllable Hih
+        {0xe000, 0xe00d},  // Nerd Fonts Pomicons
+        {0xe0a3, 0xe0a3},  // Nerd Fonts Powerline Extra Symbols
+        {0xe0b4, 0xe0c8},  // Nerd Fonts Powerline Extra Symbols
+        {0xe0cc, 0xe0d2},  // Nerd Fonts Powerline Extra Symbols
+        {0xe0d4, 0xe0d4},  // Nerd Fonts Powerline Extra Symbols
+        {0xe200, 0xe2a9},  // Nerd Fonts Font Awesome Extension
+        {0xe300, 0xe3eb},  // Nerd Fonts Weather
+        {0xe5fa, 0xe62b},  // Nerd Fonts Seti-UI + Custom
+        {0xe700, 0xe7c5},  // Nerd Fonts Devicons
+        {0xf000, 0xf2e0},  // Nerd Fonts Font Awesome
+        // {0xf27c, 0xf27c},  // Nerd Fonts Octicons (covered in previous range)
+        {0xf300, 0xf313},  // Nerd Fonts Font Logos (formerly Font Linux)
+        {0xf400, 0xf4a8},  // Nerd Fonts Octicons
+        {0xf500, 0xfd46},  // Nerd Fonts Material Design Icons
         {0xf900, 0xfaff},  // Cjk Compatibility Ideogr..
         {0xfe10, 0xfe19},  // Presentation F||m F|| Ve..Presentation F||m F|| Ve
         {0xfe30, 0xfe52},  // Presentation F||m F|| Ve..Small Full Stop

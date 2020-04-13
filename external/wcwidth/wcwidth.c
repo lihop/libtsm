@@ -381,7 +381,7 @@ static struct width_interval WIDE_EASTASIAN[] = {
         {0xe700, 0xe7c5},  // Nerd Fonts Devicons
         {0xf000, 0xf2e0},  // Nerd Fonts Font Awesome
         // {0xf27c, 0xf27c},  // Nerd Fonts Octicons (covered in previous range)
-        {0xf300, 0xf313},  // Nerd Fonts Font Logos (formerly Font Linux)
+        {0xf300, 0xf31c},  // Nerd Fonts Font Logos (formerly Font Linux)
         {0xf400, 0xf4a8},  // Nerd Fonts Octicons
         {0xf500, 0xfd46},  // Nerd Fonts Material Design Icons
         {0xf900, 0xfaff},  // Cjk Compatibility Ideogr..

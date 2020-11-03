@@ -59,7 +59,7 @@
 #ifdef _MSC_VER
 #define ESC "\x1b"
 #else
-#define ESC ESC ""
+#define ESC "\e"
 #endif
 
 #define LLOG_SUBSYSTEM "tsm-vte"

@@ -423,9 +423,6 @@ static void screen_erase_region(struct tsm_screen *con,
 	unsigned int to;
 	struct line *line;
 
-	/* TODO: more sophisticated ageing */
-	con->age = con->age_cnt;
-
 	if (y_to >= con->size_y)
 		y_to = con->size_y - 1;
 	if (x_to >= con->size_x)
@@ -542,6 +539,7 @@ void tsm_screen_unref(struct tsm_screen *con)
 	free(con->alt_lines);
 	free(con->tab_ruler);
 	tsm_symbol_table_unref(con->sym_table);
+	tsm_screen_clear_sb(con);
 	free(con);
 }
 
@@ -585,6 +583,18 @@ unsigned int tsm_screen_get_height(struct tsm_screen *con)
 		return 0;
 
 	return con->size_y;
+}
+
+static bool line_is_empty(const struct tsm_screen *con, const struct line *line)
+{
+	unsigned int i;
+
+	for (i = 0; i < line->size && i < con->size_x; i++) {
+		if (line->cells[i].ch)
+			return false;
+	}
+
+	return true;
 }
 
 SHL_EXPORT
@@ -693,6 +703,57 @@ int tsm_screen_resize(struct tsm_screen *con, unsigned int x,
 
 		for ( ; i < x; ++i)
 			screen_cell_init(con, &con->alt_lines[j]->cells[i]);
+	}
+
+	if (!(con->flags & TSM_SCREEN_ALTERNATE)) {
+		unsigned int num = 0;
+		unsigned int last_y = con->size_y;
+
+		if (y > last_y)
+			last_y = y;
+
+		while (last_y && line_is_empty(con, con->main_lines[last_y - 1])) {
+			last_y--;
+
+			if (y < con->size_y && (con->cursor_y + 1) < con->size_y)
+				con->size_y--;
+			else if (con->sb_count > num) {
+				line_free(con->main_lines[con->line_num - 1]);
+				con->line_num--;
+				num++;
+			} else
+				break;
+		}
+
+		/* move lines from sb into screen */
+		if (num) {
+			/* force refresh of entire screen */
+			con->age = con->age_cnt;
+
+			memmove(&con->main_lines[num], &con->main_lines[0], sizeof(struct line*) * con->line_num);
+			con->line_num += num;
+			/*con->size_y += num;*/
+
+			con->cursor_y += num;
+
+			i = num;
+			while (i--) {
+				con->main_lines[i] = con->sb_last;
+
+				if (con->sb_last == con->sb_pos)
+					con->sb_pos = NULL;
+				con->sb_last = con->sb_last->prev;
+				con->sb_count--;
+
+				con->main_lines[i]->next = con->main_lines[i]->prev = NULL;
+				con->main_lines[i]->sb_id = 0;
+			}
+
+			if (con->sb_last)
+				con->sb_last->next = NULL;
+			else
+				con->sb_first = NULL;
+		}
 	}
 
 	/* xterm destroys margins on resize, so do we */
@@ -1463,8 +1524,6 @@ void tsm_screen_delete_chars(struct tsm_screen *con, unsigned int num)
 		return;
 
 	screen_inc_age(con);
-	/* TODO: more sophisticated ageing */
-	con->age = con->age_cnt;
 
 	if (con->cursor_x >= con->size_x)
 		con->cursor_x = con->size_x - 1;
@@ -1477,10 +1536,14 @@ void tsm_screen_delete_chars(struct tsm_screen *con, unsigned int num)
 	mv = max - num;
 
 	cells = con->lines[con->cursor_y]->cells;
-	if (mv)
+	if (mv) {
 		memmove(&cells[con->cursor_x],
 			&cells[con->cursor_x + num],
 			mv * sizeof(*cells));
+
+		for (i = 0; i < mv; i++)
+			cells[con->cursor_x + i].age = con->age_cnt;
+	}
 
 	for (i = 0; i < num; ++i)
 		screen_cell_init(con, &cells[con->cursor_x + mv + i]);
@@ -1611,4 +1674,90 @@ void tsm_screen_erase_screen(struct tsm_screen *con, bool protect)
 
 	screen_erase_region(con, 0, 0, con->size_x - 1, con->size_y - 1,
 			     protect);
+}
+
+SHL_EXPORT
+unsigned int tsm_screen_get_sb_top(struct tsm_screen *con)
+{
+	struct line *line, *pos;
+	unsigned int y;
+
+	if (con->flags & TSM_SCREEN_ALTERNATE)
+		return 0;
+
+	pos = con->sb_pos;
+	if (pos == NULL)
+		return con->sb_count;
+
+	y = 0;
+	line = con->sb_first;
+	while (line)
+	{
+		if (line == pos)
+			return y;
+
+		++y;
+		line = line->next;
+	}
+
+	return y;
+}
+
+SHL_EXPORT
+unsigned int tsm_screen_get_sb_visible(struct tsm_screen *con)
+{
+	return con->size_y;
+}
+
+SHL_EXPORT
+unsigned int tsm_screen_get_sb_total(struct tsm_screen *con)
+{
+	if (con->flags & TSM_SCREEN_ALTERNATE)
+		return con->size_y;
+
+	return con->size_y + con->sb_count;
+}
+
+SHL_EXPORT
+bool tsm_screen_blink(struct tsm_screen *con)
+{
+	unsigned int i, j, k;
+	struct line *iter, *line = NULL;
+	struct cell *cell;
+	size_t len;
+	bool res = false;
+
+	iter = con->sb_pos;
+	k = 0;
+
+	for (i = 0; i < con->size_y; ++i) {
+		if (iter) {
+			line = iter;
+			iter = iter->next;
+		} else {
+			line = con->lines[k];
+			k++;
+		}
+
+		for (j = 0; j < con->size_x && j < line->size; ++j) {
+			cell = &line->cells[j];
+
+			if (cell->attr.blink) {
+				tsm_symbol_get(con->sym_table, &cell->ch, &len);
+
+				if (cell->ch == 0 || (cell->ch == ' ' && !cell->attr.underline))
+					len = 0;
+
+				if (len) {
+					if (!res) {
+						screen_inc_age(con);
+						res = true;
+					}
+					cell->age = con->age_cnt;
+				}
+			}
+		}
+	}
+
+	return res;
 }

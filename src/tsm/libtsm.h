@@ -1,6 +1,7 @@
 /*
  * TSM - Main Header
  *
+ * Copyright (c) 2019-2020 Fredrik Wikstrom <fredrik@a500.org>
  * Copyright (c) 2018 Aetf <aetf@unlimitedcodeworks.xyz>
  * Copyright (c) 2011-2013 David Herrmann <dh.herrmann@gmail.com>
  *
@@ -118,6 +119,7 @@ typedef void (*tsm_log_t) (void *data,
 /* ucs4 to utf8 converter */
 
 unsigned int tsm_ucs4_get_width(uint32_t ucs4);
+size_t tsm_ucs4_get_len(uint32_t ucs4);
 size_t tsm_ucs4_to_utf8(uint32_t ucs4, char *out);
 char *tsm_ucs4_to_utf8_alloc(const uint32_t *ucs4, size_t len, size_t *len_out);
 
@@ -250,6 +252,10 @@ void tsm_screen_erase_screen_to_cursor(struct tsm_screen *con,
 void tsm_screen_erase_cursor_to_screen(struct tsm_screen *con,
 				       bool protect);
 void tsm_screen_erase_screen(struct tsm_screen *con, bool protect);
+unsigned int tsm_screen_get_sb_top(struct tsm_screen *con);
+unsigned int tsm_screen_get_sb_visible(struct tsm_screen *con);
+unsigned int tsm_screen_get_sb_total(struct tsm_screen *con);
+bool tsm_screen_blink(struct tsm_screen *con);
 
 void tsm_screen_selection_reset(struct tsm_screen *con);
 void tsm_screen_selection_start(struct tsm_screen *con,
@@ -258,7 +264,13 @@ void tsm_screen_selection_start(struct tsm_screen *con,
 void tsm_screen_selection_target(struct tsm_screen *con,
 				 unsigned int posx,
 				 unsigned int posy);
+void tsm_screen_selection_word(struct tsm_screen *con,
+                               unsigned int posx,
+                               unsigned int posy);
+void tsm_screen_selection_line(struct tsm_screen *con,
+                               unsigned int posy);
 int tsm_screen_selection_copy(struct tsm_screen *con, char **out);
+int tsm_screen_copy_all(struct tsm_screen *con, char **out);
 
 tsm_age_t tsm_screen_draw(struct tsm_screen *con, tsm_screen_draw_cb draw_cb,
 			  void *data);
@@ -325,6 +337,9 @@ typedef void (*tsm_vte_write_cb) (struct tsm_vte *vte,
 				  size_t len,
 				  void *data);
 
+typedef void (*tsm_vte_bell_cb) (struct tsm_vte *vte,
+				 void *data);
+
 typedef void (*tsm_vte_osc_cb) (struct tsm_vte *vte,
 				  const char *u8,
 				  size_t len,
@@ -335,6 +350,8 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con,
 		tsm_log_t log, void *log_data);
 void tsm_vte_ref(struct tsm_vte *vte);
 void tsm_vte_unref(struct tsm_vte *vte);
+
+void tsm_vte_set_bell_cb(struct tsm_vte *vte, tsm_vte_bell_cb bell_cb, void *bell_data);
 
 void tsm_vte_set_osc_cb(struct tsm_vte *vte, tsm_vte_osc_cb osc_cb, void *osc_data);
 

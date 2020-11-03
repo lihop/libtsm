@@ -1,6 +1,7 @@
 /*
  * libtsm - VT Emulator
  *
+ * Copyright (c) 2019-2020 Fredrik Wikstrom <fredrik@a500.org>
  * Copyright (c) 2018 Aetf <aetf@unlimitedcodeworks.xyz>
  * Copyright (c) 2011-2013 David Herrmann <dh.herrmann@gmail.com>
  *
@@ -162,13 +163,16 @@ struct tsm_vte {
 	void *data;
 	char *palette_name;
 
-	struct tsm_utf8_mach *mach;
+	struct tsm_utf8_mach mach;
 	unsigned long parse_cnt;
 
 	unsigned int state;
 	unsigned int csi_argc;
 	int csi_argv[CSI_ARG_MAX];
 	unsigned int csi_flags;
+
+	tsm_vte_bell_cb bell_cb;
+	void *bell_data;
 
 	tsm_vte_osc_cb osc_cb;
 	void *osc_data;
@@ -432,7 +436,6 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con,
 		tsm_log_t log, void *log_data)
 {
 	struct tsm_vte *vte;
-	int ret;
 
 	if (!out || !con || !write_cb)
 		return -EINVAL;
@@ -456,9 +459,7 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con,
 	vte->def_attr.bccode = TSM_COLOR_BACKGROUND;
 	to_rgb(vte, &vte->def_attr);
 
-	ret = tsm_utf8_mach_new(&vte->mach);
-	if (ret)
-		goto err_free;
+	tsm_utf8_mach_init(&vte->mach);
 
 	tsm_vte_reset(vte);
 	tsm_screen_erase_screen(vte->con, false);
@@ -467,10 +468,6 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con,
 	tsm_screen_ref(vte->con);
 	*out = vte;
 	return 0;
-
-err_free:
-	free(vte);
-	return ret;
 }
 
 SHL_EXPORT
@@ -494,9 +491,18 @@ void tsm_vte_unref(struct tsm_vte *vte)
 	llog_debug(vte, "destroying vte object");
 	free(vte->palette_name);
 	tsm_screen_unref(vte->con);
-	tsm_utf8_mach_free(vte->mach);
 	free(vte->custom_palette_storage);
 	free(vte);
+}
+
+SHL_EXPORT
+void tsm_vte_set_bell_cb(struct tsm_vte *vte, tsm_vte_bell_cb bell_cb, void *bell_data)
+{
+	if (!vte)
+		return;
+
+	vte->bell_cb = bell_cb;
+	vte->bell_data = bell_data;
 }
 
 SHL_EXPORT
@@ -729,7 +735,7 @@ void tsm_vte_reset(struct tsm_vte *vte)
 	tsm_screen_reset(vte->con);
 	tsm_screen_set_flags(vte->con, TSM_SCREEN_AUTO_WRAP);
 
-	tsm_utf8_mach_reset(vte->mach);
+	tsm_utf8_mach_reset(&vte->mach);
 	vte->state = STATE_GROUND;
 	vte->gl = &vte->g0;
 	vte->gr = &vte->g1;
@@ -779,10 +785,8 @@ static void do_execute(struct tsm_vte *vte, uint32_t ctrl)
 		break;
 	case 0x07: /* BEL */
 		/* Sound bell tone */
-		/* TODO: I always considered this annying, however, we
-		 * should at least provide some way to enable it if the
-		 * user *really* wants it.
-		 */
+		if (vte->bell_cb)
+			vte->bell_cb(vte, vte->bell_data);
 		break;
 	case 0x08: /* BS */
 		/* Move cursor one position left */
@@ -2454,10 +2458,10 @@ void tsm_vte_input(struct tsm_vte *vte, const char *u8, size_t len)
 		} else if (vte->flags & FLAG_8BIT_MODE) {
 			parse_data(vte, u8[i]);
 		} else {
-			state = tsm_utf8_mach_feed(vte->mach, u8[i]);
+			state = tsm_utf8_mach_feed(&vte->mach, u8[i]);
 			if (state == TSM_UTF8_ACCEPT ||
 			    state == TSM_UTF8_REJECT) {
-				ucs4 = tsm_utf8_mach_get(vte->mach);
+				ucs4 = tsm_utf8_mach_get(&vte->mach);
 				parse_data(vte, ucs4);
 			}
 		}
@@ -2857,14 +2861,18 @@ bool tsm_vte_handle_keyboard(struct tsm_vte *vte, uint32_t keysym,
 			return true;
 		case XKB_KEY_Home:
 		case XKB_KEY_KP_Home:
-			if (vte->flags & FLAG_CURSOR_KEY_MODE)
+			if (mods & TSM_CONTROL_MASK)
+				vte_write(vte, ESC "[1;5H", 6);
+			else if (vte->flags & FLAG_CURSOR_KEY_MODE)
 				vte_write(vte, ESC "OH", 3);
 			else
 				vte_write(vte, ESC "[H", 3);
 			return true;
 		case XKB_KEY_End:
 		case XKB_KEY_KP_End:
-			if (vte->flags & FLAG_CURSOR_KEY_MODE)
+			if (mods & TSM_CONTROL_MASK)
+				vte_write(vte, ESC "[1;5F", 6);
+			else if (vte->flags & FLAG_CURSOR_KEY_MODE)
 				vte_write(vte, ESC "OF", 3);
 			else
 				vte_write(vte, ESC "[F", 3);

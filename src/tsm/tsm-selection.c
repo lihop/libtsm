@@ -1,6 +1,7 @@
 /*
  * libtsm - Screen Selections
  *
+ * Copyright (c) 2019-2020 Fredrik Wikstrom <fredrik@a500.org>
  * Copyright (c) 2011-2013 David Herrmann <dh.herrmann@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -55,18 +56,97 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wctype.h>
 #include "libtsm.h"
 #include "libtsm-int.h"
 #include "shl-llog.h"
 
 #define LLOG_SUBSYSTEM "tsm-selection"
 
+static void selection_age(struct tsm_screen *con,
+                          const struct selection_pos *start,
+                          const struct selection_pos *end)
+{
+	unsigned int i, j, k;
+	struct line *iter, *line = NULL;
+	bool in_sel = false, sel_start = false, sel_end = false;
+
+	iter = con->sb_pos;
+	k = 0;
+
+	if (start->line ? (!iter || start->line->sb_id < iter->sb_id) : (start->y == SELECTION_TOP))
+	{
+		in_sel = !in_sel;
+	}
+	if (end->line ? (!iter || end->line->sb_id < iter->sb_id) : (end->y == SELECTION_TOP))
+	{
+		in_sel = !in_sel;
+		if (!in_sel)
+			return;
+	}
+
+	for (i = 0; i < con->size_y; ++i) {
+		if (iter) {
+			line = iter;
+			iter = iter->next;
+		} else {
+			line = con->lines[k];
+			k++;
+		}
+
+		if (start->line == line || (!start->line && start->y == k - 1))
+			sel_start = true;
+		else
+			sel_start = false;
+
+		if (end->line == line || (!end->line && end->y == k - 1))
+			sel_end = true;
+		else
+			sel_end = false;
+
+		if (sel_start && sel_end) {
+			if (start->x <= end->x) {
+				for (j = start->x; j <= end->x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			} else {
+				for (j = end->x; j <= start->x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			}
+		} else if (sel_start) {
+			if (in_sel) {
+				for (j = 0; j <= start->x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			} else {
+				for (j = start->x; j < con->size_x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			}
+			in_sel = !in_sel;
+		} else if (sel_end) {
+			if (in_sel) {
+				for (j = 0; j <= end->x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			} else {
+				for (j = end->x; j < con->size_x && j < line->size; ++j) {
+					line->cells[j].age = con->age_cnt;
+				}
+			}
+			in_sel = !in_sel;
+		} else if (in_sel) {
+			line->age = con->age_cnt;
+		}
+	}
+}
+
 static void selection_set(struct tsm_screen *con, struct selection_pos *sel,
 			  unsigned int x, unsigned int y)
 {
 	struct line *pos;
 
-	sel->line = NULL;
 	pos = con->sb_pos;
 
 	while (y && pos) {
@@ -74,9 +154,7 @@ static void selection_set(struct tsm_screen *con, struct selection_pos *sel,
 		pos = pos->next;
 	}
 
-	if (pos)
 		sel->line = pos;
-
 	sel->x = x;
 	sel->y = y;
 }
@@ -84,12 +162,12 @@ static void selection_set(struct tsm_screen *con, struct selection_pos *sel,
 SHL_EXPORT
 void tsm_screen_selection_reset(struct tsm_screen *con)
 {
-	if (!con)
+	if (!con || !con->sel_active)
 		return;
 
 	screen_inc_age(con);
-	/* TODO: more sophisticated ageing */
-	con->age = con->age_cnt;
+
+	selection_age(con, &con->sel_start, &con->sel_end);
 
 	con->sel_active = false;
 }
@@ -103,12 +181,15 @@ void tsm_screen_selection_start(struct tsm_screen *con,
 		return;
 
 	screen_inc_age(con);
-	/* TODO: more sophisticated ageing */
-	con->age = con->age_cnt;
+
+	if (con->sel_active)
+		selection_age(con, &con->sel_start, &con->sel_end);
 
 	con->sel_active = true;
 	selection_set(con, &con->sel_start, posx, posy);
 	memcpy(&con->sel_end, &con->sel_start, sizeof(con->sel_end));
+
+	selection_age(con, &con->sel_start, &con->sel_end);
 }
 
 SHL_EXPORT
@@ -116,14 +197,90 @@ void tsm_screen_selection_target(struct tsm_screen *con,
 				 unsigned int posx,
 				 unsigned int posy)
 {
+	struct selection_pos old_end;
+
 	if (!con || !con->sel_active)
 		return;
 
 	screen_inc_age(con);
-	/* TODO: more sophisticated ageing */
-	con->age = con->age_cnt;
 
+	memcpy(&old_end, &con->sel_end, sizeof(con->sel_end));
 	selection_set(con, &con->sel_end, posx, posy);
+
+	selection_age(con, &old_end, &con->sel_end);
+}
+
+static struct line *line_get(struct tsm_screen *con,
+                             unsigned int y)
+{
+	struct line *pos;
+
+	pos = con->sb_pos;
+
+	while (y && pos) {
+		--y;
+		pos = pos->next;
+	}
+
+	if (pos)
+		return pos;
+
+	return con->lines[y];
+}
+
+void tsm_screen_selection_word(struct tsm_screen *con,
+                               unsigned int posx,
+                               unsigned int posy)
+{
+	struct line *line;
+
+	if (!con)
+		return;
+
+	if (con->sel_active)
+		selection_age(con, &con->sel_start, &con->sel_end);
+
+	line = line_get(con, posy);
+
+	if (posx < line->size && iswalnum(line->cells[posx].ch))
+	{
+		int i;
+		unsigned int startx, endx;
+
+		screen_inc_age(con);
+
+		for (i = posx - 1; i >= 0 && iswalnum(line->cells[i].ch); i--);
+		startx = i + 1;
+
+		for (i = posx + 1; i < line->size && iswalnum(line->cells[i].ch); i++);
+		endx = i - 1;
+
+		con->sel_active = true;
+		selection_set(con, &con->sel_start, startx, posy);
+		memcpy(&con->sel_end, &con->sel_start, sizeof(con->sel_end));
+		con->sel_end.x = endx;
+
+		selection_age(con, &con->sel_start, &con->sel_end);
+	}
+}
+
+void tsm_screen_selection_line(struct tsm_screen *con,
+                               unsigned int posy)
+{
+	if (!con)
+		return;
+
+	screen_inc_age(con);
+
+	if (con->sel_active)
+		selection_age(con, &con->sel_start, &con->sel_end);
+
+	con->sel_active = true;
+	selection_set(con, &con->sel_start, 0, posy);
+	memcpy(&con->sel_end, &con->sel_start, sizeof(con->sel_end));
+	con->sel_end.x = con->size_x - 1;
+
+	selection_age(con, &con->sel_start, &con->sel_end);
 }
 
 /* TODO: tsm_ucs4_to_utf8 expects UCS4 characters, but a cell contains a
@@ -137,10 +294,8 @@ static unsigned int copy_line(struct line *line, char *buf,
 
 	end = start + len;
 	for (i = start; i < line->size && i < end; ++i) {
-		if (i < line->size || !line->cells[i].ch)
+		if (line->cells[i].ch != '\0')
 			pos += tsm_ucs4_to_utf8(line->cells[i].ch, pos);
-		else
-			pos += tsm_ucs4_to_utf8(' ', pos);
 	}
 
 	return pos - buf;
@@ -348,6 +503,65 @@ int tsm_screen_selection_copy(struct tsm_screen *con, char **out)
 
 			*pos++ = '\n';
 		}
+	}
+
+	/* return buffer */
+	*pos = 0;
+	*out = str;
+	return pos - str;
+}
+
+SHL_EXPORT
+int tsm_screen_copy_all(struct tsm_screen *con, char **out)
+{
+	unsigned int len, i;
+	struct line *iter;
+	char *str, *pos;
+
+	if (!con || !out)
+		return -EINVAL;
+
+	/* calculate size of buffer */
+	len = 0;
+	iter = con->sb_first;
+
+	while (iter) {
+		len += iter->size;
+
+		++len;
+		iter = iter->next;
+	}
+
+	for (i = 0; i < con->size_y; ++i) {
+		len += con->size_x;
+
+		++len;
+	}
+
+	/* allocate buffer */
+	len *= 4;
+	++len;
+	str = malloc(len);
+	if (!str)
+		return -ENOMEM;
+	pos = str;
+
+	/* copy data into buffer */
+	iter = con->sb_first;
+
+	while (iter) {
+		pos += copy_line(iter, pos, 0, iter->size);
+
+		*pos++ = '\n';
+		iter = iter->next;
+	}
+
+	for (i = 0; i < con->size_y; ++i) {
+		iter = con->lines[i];
+
+		pos += copy_line(iter, pos, 0, con->size_x);
+
+		*pos++ = '\n';
 	}
 
 	/* return buffer */

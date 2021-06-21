@@ -1771,7 +1771,12 @@ static void do_csi(struct tsm_vte *vte, uint32_t data)
 		tsm_screen_erase_chars(vte->con, num);
 		break;
 	case 'm':
-		csi_attribute(vte);
+		if (vte->csi_flags & CSI_GT) {
+			/* xterm: set/reset key modifier options (XTMODKEYS) */
+			/* ignore */
+		} else {
+			csi_attribute(vte);
+		}
 		break;
 	case 'p':
 		if (vte->csi_flags & CSI_GT) {

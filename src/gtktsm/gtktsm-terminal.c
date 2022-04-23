@@ -971,16 +971,20 @@ static int renderer_draw_cell(struct tsm_screen *screen,
 		fr = attr->br;
 		fg = attr->bg;
 		fb = attr->bb;
+		fa = attr->ba;
 		br = attr->fr;
 		bg = attr->fg;
 		bb = attr->fb;
+		ba = attr->fa;
 	} else {
 		fr = attr->fr;
 		fg = attr->fg;
 		fb = attr->fb;
+		fa = attr->fa;
 		br = attr->br;
 		bg = attr->bg;
 		bb = attr->bb;
+		ba = attr->ba;
 	}
 
 	/* select correct font */

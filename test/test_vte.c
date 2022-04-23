@@ -99,26 +99,26 @@ START_TEST(test_vte_null)
 }
 END_TEST
 
-static uint8_t test_palette[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = {   0,  18,  36 },
-	[TSM_COLOR_RED]           = {   1,  19,  37 },
-	[TSM_COLOR_GREEN]         = {   2,  20,  38 },
-	[TSM_COLOR_YELLOW]        = {   3,  21,  39 },
-	[TSM_COLOR_BLUE]          = {   4,  22,  40 },
-	[TSM_COLOR_MAGENTA]       = {   5,  23,  41 },
-	[TSM_COLOR_CYAN]          = {   6,  24,  42 },
-	[TSM_COLOR_LIGHT_GREY]    = {   7,  25,  43 },
-	[TSM_COLOR_DARK_GREY]     = {   8,  26,  44 },
-	[TSM_COLOR_LIGHT_RED]     = {   9,  27,  45 },
-	[TSM_COLOR_LIGHT_GREEN]   = {  10,  28,  46 },
-	[TSM_COLOR_LIGHT_YELLOW]  = {  11,  29,  47 },
-	[TSM_COLOR_LIGHT_BLUE]    = {  12,  30,  48 },
-	[TSM_COLOR_LIGHT_MAGENTA] = {  13,  31,  49 },
-	[TSM_COLOR_LIGHT_CYAN]    = {  14,  32,  50 },
-	[TSM_COLOR_WHITE]         = {  15,  33,  51 },
+static uint8_t test_palette[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = {   0,  18,  36, 255 },
+	[TSM_COLOR_RED]           = {   1,  19,  37, 255 },
+	[TSM_COLOR_GREEN]         = {   2,  20,  38, 255 },
+	[TSM_COLOR_YELLOW]        = {   3,  21,  39, 255 },
+	[TSM_COLOR_BLUE]          = {   4,  22,  40, 255 },
+	[TSM_COLOR_MAGENTA]       = {   5,  23,  41, 255 },
+	[TSM_COLOR_CYAN]          = {   6,  24,  42, 255 },
+	[TSM_COLOR_LIGHT_GREY]    = {   7,  25,  43, 255 },
+	[TSM_COLOR_DARK_GREY]     = {   8,  26,  44, 255 },
+	[TSM_COLOR_LIGHT_RED]     = {   9,  27,  45, 255 },
+	[TSM_COLOR_LIGHT_GREEN]   = {  10,  28,  46, 255 },
+	[TSM_COLOR_LIGHT_YELLOW]  = {  11,  29,  47, 255 },
+	[TSM_COLOR_LIGHT_BLUE]    = {  12,  30,  48, 255 },
+	[TSM_COLOR_LIGHT_MAGENTA] = {  13,  31,  49, 255 },
+	[TSM_COLOR_LIGHT_CYAN]    = {  14,  32,  50, 255 },
+	[TSM_COLOR_WHITE]         = {  15,  33,  51, 255 },
 
-	[TSM_COLOR_FOREGROUND]    = {  16,  34,  52 },
-	[TSM_COLOR_BACKGROUND]    = {  17,  35,  53 },
+	[TSM_COLOR_FOREGROUND]    = {  16,  34,  52, 255 },
+	[TSM_COLOR_BACKGROUND]    = {  17,  35,  53, 255 },
 };
 
 START_TEST(test_vte_custom_palette)

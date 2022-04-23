@@ -179,8 +179,8 @@ struct tsm_vte {
 	unsigned int osc_len;
 	char osc_arg[OSC_MAX_LEN];
 
-	uint8_t (*custom_palette_storage)[3];
-	uint8_t (*palette)[3];
+	uint8_t (*custom_palette_storage)[4];
+	uint8_t (*palette)[4];
 	struct tsm_screen_attr def_attr;
 	struct tsm_screen_attr cattr;
 	unsigned int flags;
@@ -199,161 +199,161 @@ struct tsm_vte {
 	unsigned int alt_cursor_y;
 };
 
-static uint8_t color_palette[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = {   0,   0,   0 }, /* black */
-	[TSM_COLOR_RED]           = { 205,   0,   0 }, /* red */
-	[TSM_COLOR_GREEN]         = {   0, 205,   0 }, /* green */
-	[TSM_COLOR_YELLOW]        = { 205, 205,   0 }, /* yellow */
-	[TSM_COLOR_BLUE]          = {   0,   0, 238 }, /* blue */
-	[TSM_COLOR_MAGENTA]       = { 205,   0, 205 }, /* magenta */
-	[TSM_COLOR_CYAN]          = {   0, 205, 205 }, /* cyan */
-	[TSM_COLOR_LIGHT_GREY]    = { 229, 229, 229 }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = { 127, 127, 127 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 255,   0,   0 }, /* light red */
-	[TSM_COLOR_LIGHT_GREEN]   = {   0, 255,   0 }, /* light green */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 255, 255,   0 }, /* light yellow */
-	[TSM_COLOR_LIGHT_BLUE]    = {  92,  92, 255 }, /* light blue */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 255,   0, 255 }, /* light magenta */
-	[TSM_COLOR_LIGHT_CYAN]    = {   0, 255, 255 }, /* light cyan */
-	[TSM_COLOR_WHITE]         = { 255, 255, 255 }, /* white */
+static uint8_t color_palette[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = {   0,   0,   0, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 205,   0,   0, 255 }, /* red */
+	[TSM_COLOR_GREEN]         = {   0, 205,   0, 255 }, /* green */
+	[TSM_COLOR_YELLOW]        = { 205, 205,   0, 255 }, /* yellow */
+	[TSM_COLOR_BLUE]          = {   0,   0, 238, 255 }, /* blue */
+	[TSM_COLOR_MAGENTA]       = { 205,   0, 205, 255 }, /* magenta */
+	[TSM_COLOR_CYAN]          = {   0, 205, 205, 255 }, /* cyan */
+	[TSM_COLOR_LIGHT_GREY]    = { 229, 229, 229, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = { 127, 127, 127, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 255,   0,   0, 255 }, /* light red */
+	[TSM_COLOR_LIGHT_GREEN]   = {   0, 255,   0, 255 }, /* light green */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 255, 255,   0, 255 }, /* light yellow */
+	[TSM_COLOR_LIGHT_BLUE]    = {  92,  92, 255, 255 }, /* light blue */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 255,   0, 255, 255 }, /* light magenta */
+	[TSM_COLOR_LIGHT_CYAN]    = {   0, 255, 255, 255 }, /* light cyan */
+	[TSM_COLOR_WHITE]         = { 255, 255, 255, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 229, 229, 229 }, /* light grey */
-	[TSM_COLOR_BACKGROUND]    = {   0,   0,   0 }, /* black */
+	[TSM_COLOR_FOREGROUND]    = { 229, 229, 229, 255 }, /* light grey */
+	[TSM_COLOR_BACKGROUND]    = {   0,   0,   0, 255 }, /* black */
 };
 
-static uint8_t color_palette_solarized[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = {   7,  54,  66 }, /* black */
-	[TSM_COLOR_RED]           = { 220,  50,  47 }, /* red */
-	[TSM_COLOR_GREEN]         = { 133, 153,   0 }, /* green */
-	[TSM_COLOR_YELLOW]        = { 181, 137,   0 }, /* yellow */
-	[TSM_COLOR_BLUE]          = {  38, 139, 210 }, /* blue */
-	[TSM_COLOR_MAGENTA]       = { 211,  54, 130 }, /* magenta */
-	[TSM_COLOR_CYAN]          = {  42, 161, 152 }, /* cyan */
-	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213 }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22 }, /* light red */
-	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117 }, /* light green */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131 }, /* light yellow */
-	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150 }, /* light blue */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196 }, /* light magenta */
-	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161 }, /* light cyan */
-	[TSM_COLOR_WHITE]         = { 253, 246, 227 }, /* white */
+static uint8_t color_palette_solarized[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = {   7,  54,  66, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 220,  50,  47, 255 }, /* red */
+	[TSM_COLOR_GREEN]         = { 133, 153,   0, 255 }, /* green */
+	[TSM_COLOR_YELLOW]        = { 181, 137,   0, 255 }, /* yellow */
+	[TSM_COLOR_BLUE]          = {  38, 139, 210, 255 }, /* blue */
+	[TSM_COLOR_MAGENTA]       = { 211,  54, 130, 255 }, /* magenta */
+	[TSM_COLOR_CYAN]          = {  42, 161, 152, 255 }, /* cyan */
+	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22, 255 }, /* light red */
+	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117, 255 }, /* light green */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131, 255 }, /* light yellow */
+	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150, 255 }, /* light blue */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196, 255 }, /* light magenta */
+	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161, 255 }, /* light cyan */
+	[TSM_COLOR_WHITE]         = { 253, 246, 227, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 238, 232, 213 }, /* light grey */
-	[TSM_COLOR_BACKGROUND]    = {   7,  54,  66 }, /* black */
+	[TSM_COLOR_FOREGROUND]    = { 238, 232, 213, 255 }, /* light grey */
+	[TSM_COLOR_BACKGROUND]    = {   7,  54,  66, 255 }, /* black */
 };
 
-static uint8_t color_palette_solarized_black[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = {   0,   0,   0 }, /* black */
-	[TSM_COLOR_RED]           = { 220,  50,  47 }, /* red */
-	[TSM_COLOR_GREEN]         = { 133, 153,   0 }, /* green */
-	[TSM_COLOR_YELLOW]        = { 181, 137,   0 }, /* yellow */
-	[TSM_COLOR_BLUE]          = {  38, 139, 210 }, /* blue */
-	[TSM_COLOR_MAGENTA]       = { 211,  54, 130 }, /* magenta */
-	[TSM_COLOR_CYAN]          = {  42, 161, 152 }, /* cyan */
-	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213 }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22 }, /* light red */
-	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117 }, /* light green */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131 }, /* light yellow */
-	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150 }, /* light blue */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196 }, /* light magenta */
-	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161 }, /* light cyan */
-	[TSM_COLOR_WHITE]         = { 253, 246, 227 }, /* white */
+static uint8_t color_palette_solarized_black[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = {   0,   0,   0, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 220,  50,  47, 255 }, /* red */
+	[TSM_COLOR_GREEN]         = { 133, 153,   0, 255 }, /* green */
+	[TSM_COLOR_YELLOW]        = { 181, 137,   0, 255 }, /* yellow */
+	[TSM_COLOR_BLUE]          = {  38, 139, 210, 255 }, /* blue */
+	[TSM_COLOR_MAGENTA]       = { 211,  54, 130, 255 }, /* magenta */
+	[TSM_COLOR_CYAN]          = {  42, 161, 152, 255 }, /* cyan */
+	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22, 255 }, /* light red */
+	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117, 255 }, /* light green */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131, 255 }, /* light yellow */
+	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150, 255 }, /* light blue */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196, 255 }, /* light magenta */
+	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161, 255 }, /* light cyan */
+	[TSM_COLOR_WHITE]         = { 253, 246, 227, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 238, 232, 213 }, /* light grey */
-	[TSM_COLOR_BACKGROUND]    = {   0,   0,   0 }, /* black */
+	[TSM_COLOR_FOREGROUND]    = { 238, 232, 213, 255 }, /* light grey */
+	[TSM_COLOR_BACKGROUND]    = {   0,   0,   0, 255 }, /* black */
 };
 
-static uint8_t color_palette_solarized_white[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = {   7,  54,  66 }, /* black */
-	[TSM_COLOR_RED]           = { 220,  50,  47 }, /* red */
-	[TSM_COLOR_GREEN]         = { 133, 153,   0 }, /* green */
-	[TSM_COLOR_YELLOW]        = { 181, 137,   0 }, /* yellow */
-	[TSM_COLOR_BLUE]          = {  38, 139, 210 }, /* blue */
-	[TSM_COLOR_MAGENTA]       = { 211,  54, 130 }, /* magenta */
-	[TSM_COLOR_CYAN]          = {  42, 161, 152 }, /* cyan */
-	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213 }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22 }, /* light red */
-	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117 }, /* light green */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131 }, /* light yellow */
-	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150 }, /* light blue */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196 }, /* light magenta */
-	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161 }, /* light cyan */
-	[TSM_COLOR_WHITE]         = { 253, 246, 227 }, /* white */
+static uint8_t color_palette_solarized_white[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = {   7,  54,  66, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 220,  50,  47, 255 }, /* red */
+	[TSM_COLOR_GREEN]         = { 133, 153,   0, 255 }, /* green */
+	[TSM_COLOR_YELLOW]        = { 181, 137,   0, 255 }, /* yellow */
+	[TSM_COLOR_BLUE]          = {  38, 139, 210, 255 }, /* blue */
+	[TSM_COLOR_MAGENTA]       = { 211,  54, 130, 255 }, /* magenta */
+	[TSM_COLOR_CYAN]          = {  42, 161, 152, 255 }, /* cyan */
+	[TSM_COLOR_LIGHT_GREY]    = { 238, 232, 213, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = {   0,  43,  54, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 203,  75,  22, 255 }, /* light red */
+	[TSM_COLOR_LIGHT_GREEN]   = {  88, 110, 117, 255 }, /* light green */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 101, 123, 131, 255 }, /* light yellow */
+	[TSM_COLOR_LIGHT_BLUE]    = { 131, 148, 150, 255 }, /* light blue */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 108, 113, 196, 255 }, /* light magenta */
+	[TSM_COLOR_LIGHT_CYAN]    = { 147, 161, 161, 255 }, /* light cyan */
+	[TSM_COLOR_WHITE]         = { 253, 246, 227, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = {   7,  54,  66 }, /* black */
-	[TSM_COLOR_BACKGROUND]    = { 238, 232, 213 }, /* light grey */
+	[TSM_COLOR_FOREGROUND]    = {   7,  54,  66, 255 }, /* black */
+	[TSM_COLOR_BACKGROUND]    = { 238, 232, 213, 255 }, /* light grey */
 };
 
-static uint8_t color_palette_soft_black[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = { 0x3f, 0x3f, 0x3f }, /* black */
-	[TSM_COLOR_RED]           = { 0x70, 0x50, 0x50 }, /* red */
-	[TSM_COLOR_GREEN]         = { 0x60, 0xb4, 0x8a }, /* green */
-	[TSM_COLOR_YELLOW]        = { 0xdf, 0xaf, 0x8f }, /* yellow */
-	[TSM_COLOR_BLUE]          = { 0x9a, 0xb8, 0xd7 }, /* blue */
-	[TSM_COLOR_MAGENTA]       = { 0xdc, 0x8c, 0xc3 }, /* magenta */
-	[TSM_COLOR_CYAN]          = { 0x8c, 0xd0, 0xd3 }, /* cyan */
-	[TSM_COLOR_LIGHT_GREY]    = { 0xff, 0xff, 0xff }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = { 0x70, 0x90, 0x80 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 0xdc, 0xa3, 0xa3 }, /* light red */
-	[TSM_COLOR_LIGHT_GREEN]   = { 0x72, 0xd5, 0xa3 }, /* light green */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf0, 0xdf, 0xaf }, /* light yellow */
-	[TSM_COLOR_LIGHT_BLUE]    = { 0x94, 0xbf, 0xf3 }, /* light blue */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 0xec, 0x93, 0xd3 }, /* light magenta */
-	[TSM_COLOR_LIGHT_CYAN]    = { 0x93, 0xe0, 0xe3 }, /* light cyan */
-	[TSM_COLOR_WHITE]         = { 0xdc, 0xdc, 0xcc }, /* white */
+static uint8_t color_palette_soft_black[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = { 0x3f, 0x3f, 0x3f, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 0x70, 0x50, 0x50, 255 }, /* red */
+	[TSM_COLOR_GREEN]         = { 0x60, 0xb4, 0x8a, 255 }, /* green */
+	[TSM_COLOR_YELLOW]        = { 0xdf, 0xaf, 0x8f, 255 }, /* yellow */
+	[TSM_COLOR_BLUE]          = { 0x9a, 0xb8, 0xd7, 255 }, /* blue */
+	[TSM_COLOR_MAGENTA]       = { 0xdc, 0x8c, 0xc3, 255 }, /* magenta */
+	[TSM_COLOR_CYAN]          = { 0x8c, 0xd0, 0xd3, 255 }, /* cyan */
+	[TSM_COLOR_LIGHT_GREY]    = { 0xff, 0xff, 0xff, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = { 0x70, 0x90, 0x80, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 0xdc, 0xa3, 0xa3, 255 }, /* light red */
+	[TSM_COLOR_LIGHT_GREEN]   = { 0x72, 0xd5, 0xa3, 255 }, /* light green */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf0, 0xdf, 0xaf, 255 }, /* light yellow */
+	[TSM_COLOR_LIGHT_BLUE]    = { 0x94, 0xbf, 0xf3, 255 }, /* light blue */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 0xec, 0x93, 0xd3, 255 }, /* light magenta */
+	[TSM_COLOR_LIGHT_CYAN]    = { 0x93, 0xe0, 0xe3, 255 }, /* light cyan */
+	[TSM_COLOR_WHITE]         = { 0xdc, 0xdc, 0xcc, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 0xdc, 0xdc, 0xcc }, /* white */
-	[TSM_COLOR_BACKGROUND]    = { 0x2c, 0x2c, 0x2c }, /* light grey */
+	[TSM_COLOR_FOREGROUND]    = { 0xdc, 0xdc, 0xcc, 255 }, /* white */
+	[TSM_COLOR_BACKGROUND]    = { 0x2c, 0x2c, 0x2c, 255 }, /* light grey */
 };
 
-static uint8_t color_palette_base16_dark[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00 }, /* black */
-	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42 }, /* red, base08 */
-	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c }, /* green, base0B */
-	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88 }, /* yellow, base0A */
-	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2 }, /* blue, base0D */
-	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf }, /* magenta, base0E */
-	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9 }, /* cyan, base0C */
-	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42 }, /* red, base08 */
-	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c }, /* green, base0B */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88 }, /* yellow, base0A */
-	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2 }, /* blue, base0D */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf }, /* magenta, base0E */
-	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9 }, /* cyan, base0C */
-	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff }, /* white */
+static uint8_t color_palette_base16_dark[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42, 255 }, /* red, base08 */
+	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c, 255 }, /* green, base0B */
+	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88, 255 }, /* yellow, base0A */
+	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2, 255 }, /* blue, base0D */
+	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf, 255 }, /* magenta, base0E */
+	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9, 255 }, /* cyan, base0C */
+	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42, 255 }, /* red, base08 */
+	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c, 255 }, /* green, base0B */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88, 255 }, /* yellow, base0A */
+	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2, 255 }, /* blue, base0D */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf, 255 }, /* magenta, base0E */
+	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9, 255 }, /* cyan, base0C */
+	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 0xd8, 0xd8, 0xd8 }, /* light grey */
-	[TSM_COLOR_BACKGROUND]    = { 0x18, 0x18, 0x18 }, /* dark grey */
+	[TSM_COLOR_FOREGROUND]    = { 0xd8, 0xd8, 0xd8, 255 }, /* light grey */
+	[TSM_COLOR_BACKGROUND]    = { 0x18, 0x18, 0x18, 255 }, /* dark grey */
 };
 
-static uint8_t color_palette_base16_light[TSM_COLOR_NUM][3] = {
-	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00 }, /* black */
-	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42 }, /* red, base08 */
-	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c }, /* green, base0B */
-	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88 }, /* yellow, base0A */
-	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2 }, /* blue, base0D */
-	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf }, /* magenta, base0E */
-	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9 }, /* cyan, base0C */
-	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa }, /* light grey */
-	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55 }, /* dark grey */
-	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42 }, /* red, base08 */
-	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c }, /* green, base0B */
-	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88 }, /* yellow, base0A */
-	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2 }, /* blue, base0D */
-	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf }, /* magenta, base0E */
-	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9 }, /* cyan, base0C */
-	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff }, /* white */
+static uint8_t color_palette_base16_light[TSM_COLOR_NUM][4] = {
+	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00, 255 }, /* black */
+	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42, 255 }, /* red, base08 */
+	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c, 255 }, /* green, base0B */
+	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88, 255 }, /* yellow, base0A */
+	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2, 255 }, /* blue, base0D */
+	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf, 255 }, /* magenta, base0E */
+	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9, 255 }, /* cyan, base0C */
+	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa, 255 }, /* light grey */
+	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55, 255 }, /* dark grey */
+	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42, 255 }, /* red, base08 */
+	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c, 255 }, /* green, base0B */
+	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88, 255 }, /* yellow, base0A */
+	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2, 255 }, /* blue, base0D */
+	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf, 255 }, /* magenta, base0E */
+	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9, 255 }, /* cyan, base0C */
+	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff, 255 }, /* white */
 
-	[TSM_COLOR_FOREGROUND]    = { 0x18, 0x18, 0x18 }, /* dark grey */
-	[TSM_COLOR_BACKGROUND]    = { 0xd8, 0xd8, 0xd8 }, /* light grey */
+	[TSM_COLOR_FOREGROUND]    = { 0x18, 0x18, 0x18, 255 }, /* dark grey */
+	[TSM_COLOR_BACKGROUND]    = { 0xd8, 0xd8, 0xd8, 255 }, /* light grey */
 };
 
-static uint8_t (*get_palette(struct tsm_vte *vte))[3]
+static uint8_t (*get_palette(struct tsm_vte *vte))[4]
 {
 	if (!vte->palette_name)
 		return color_palette;
@@ -399,6 +399,7 @@ static void to_rgb(struct tsm_vte *vte, struct tsm_screen_attr *attr)
 		attr->fr = vte->palette[code][0];
 		attr->fg = vte->palette[code][1];
 		attr->fb = vte->palette[code][2];
+		attr->fa = vte->palette[code][3];
 	}
 
 	code = attr->bccode;
@@ -409,6 +410,7 @@ static void to_rgb(struct tsm_vte *vte, struct tsm_screen_attr *attr)
 		attr->br = vte->palette[code][0];
 		attr->bg = vte->palette[code][1];
 		attr->bb = vte->palette[code][2];
+		attr->ba = vte->palette[code][3];
 	}
 }
 
@@ -419,6 +421,7 @@ static void copy_fcolor(struct tsm_screen_attr *dest,
 	dest->fr = src->fr;
 	dest->fg = src->fg;
 	dest->fb = src->fb;
+	dest->fa = src->fa;
 }
 
 static void copy_bcolor(struct tsm_screen_attr *dest,
@@ -428,6 +431,7 @@ static void copy_bcolor(struct tsm_screen_attr *dest,
 	dest->br = src->br;
 	dest->bg = src->bg;
 	dest->bb = src->bb;
+	dest->ba = src->ba;
 }
 
 SHL_EXPORT
@@ -551,10 +555,10 @@ int tsm_vte_set_palette(struct tsm_vte *vte, const char *palette_name)
 }
 
 SHL_EXPORT
-int tsm_vte_set_custom_palette(struct tsm_vte *vte, uint8_t (*palette)[3])
+int tsm_vte_set_custom_palette(struct tsm_vte *vte, uint8_t (*palette)[4])
 {
 	const size_t palette_byte_size = sizeof(color_palette);
-	uint8_t (*tmp)[3] = NULL;
+	uint8_t (*tmp)[4] = NULL;
 
 	if (!vte)
 		return -EINVAL;

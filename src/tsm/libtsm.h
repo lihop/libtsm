@@ -163,9 +163,11 @@ struct tsm_screen_attr {
 	uint8_t fr;			/* foreground red */
 	uint8_t fg;			/* foreground green */
 	uint8_t fb;			/* foreground blue */
+	uint8_t fa;         /* foreground alpha */
 	uint8_t br;			/* background red */
 	uint8_t bg;			/* background green */
 	uint8_t bb;			/* background blue */
+	uint8_t ba;         /* background alpha */
 	unsigned int bold : 1;		/* bold character */
 	unsigned int italic : 1;	/* italics character */
 	unsigned int underline : 1;	/* underlined character */
@@ -389,39 +391,39 @@ int tsm_vte_set_palette(struct tsm_vte *vte, const char *palette_name);
  * An example:
  *
  * @code
- * static uint8_t color_palette[TSM_COLOR_NUM][3] = {
- * 	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00 },
- * 	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42 },
- * 	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c },
- * 	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88 },
- * 	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2 },
- * 	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf },
- * 	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9 },
- * 	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa },
- * 	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55 },
- * 	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42 },
- * 	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c },
- *	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88 },
- * 	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2 },
- * 	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf },
- * 	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9 },
- * 	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff },
+ * static uint8_t color_palette[TSM_COLOR_NUM][4] = {
+ * 	[TSM_COLOR_BLACK]         = { 0x00, 0x00, 0x00, 0xff },
+ * 	[TSM_COLOR_RED]           = { 0xab, 0x46, 0x42, 0xff },
+ * 	[TSM_COLOR_GREEN]         = { 0xa1, 0xb5, 0x6c, 0xff },
+ * 	[TSM_COLOR_YELLOW]        = { 0xf7, 0xca, 0x88, 0xff },
+ * 	[TSM_COLOR_BLUE]          = { 0x7c, 0xaf, 0xc2, 0xff },
+ * 	[TSM_COLOR_MAGENTA]       = { 0xba, 0x8b, 0xaf, 0xff },
+ * 	[TSM_COLOR_CYAN]          = { 0x86, 0xc1, 0xb9, 0xff },
+ * 	[TSM_COLOR_LIGHT_GREY]    = { 0xaa, 0xaa, 0xaa, 0xff },
+ * 	[TSM_COLOR_DARK_GREY]     = { 0x55, 0x55, 0x55, 0xff },
+ * 	[TSM_COLOR_LIGHT_RED]     = { 0xab, 0x46, 0x42, 0xff },
+ * 	[TSM_COLOR_LIGHT_GREEN]   = { 0xa1, 0xb5, 0x6c, 0xff },
+ *	[TSM_COLOR_LIGHT_YELLOW]  = { 0xf7, 0xca, 0x88, 0xff },
+ * 	[TSM_COLOR_LIGHT_BLUE]    = { 0x7c, 0xaf, 0xc2, 0xff },
+ * 	[TSM_COLOR_LIGHT_MAGENTA] = { 0xba, 0x8b, 0xaf, 0xff },
+ * 	[TSM_COLOR_LIGHT_CYAN]    = { 0x86, 0xc1, 0xb9, 0xff },
+ * 	[TSM_COLOR_WHITE]         = { 0xff, 0xff, 0xff, 0xff },
  *
- * 	[TSM_COLOR_FOREGROUND]    = { 0x18, 0x18, 0x18 },
- * 	[TSM_COLOR_BACKGROUND]    = { 0xd8, 0xd8, 0xd8 },
+ * 	[TSM_COLOR_FOREGROUND]    = { 0x18, 0x18, 0x18, 0xff },
+ * 	[TSM_COLOR_BACKGROUND]    = { 0xd8, 0xd8, 0xd8, 0xff },
  * };
  * @endcode
  *
  * The palette array is copied into the vte object.
  *
  * @param vte The vte object to set on
- * @param palette The palette array, which should have shape `uint8_t palette[TSM_COLOR_NUM][3]`. Pass NULL to clear.
+ * @param palette The palette array, which should have shape `uint8_t palette[TSM_COLOR_NUM][4]`. Pass NULL to clear.
  *
  * @retval 0 on success.
  * @retval -EINVAL if vte is NULL.
  * @retval -ENOMEM if malloc fails.
  */
-int tsm_vte_set_custom_palette(struct tsm_vte *vte, uint8_t (*palette)[3]);
+int tsm_vte_set_custom_palette(struct tsm_vte *vte, uint8_t (*palette)[4]);
 
 void tsm_vte_get_def_attr(struct tsm_vte *vte, struct tsm_screen_attr *out);
 

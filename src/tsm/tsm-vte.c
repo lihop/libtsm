@@ -525,7 +525,6 @@ static int vte_update_palette(struct tsm_vte *vte)
 	memcpy(&vte->cattr, &vte->def_attr, sizeof(vte->cattr));
 
 	tsm_screen_set_def_attr(vte->con, &vte->def_attr);
-	tsm_screen_erase_screen(vte->con, false);
 
 	return 0;
 }

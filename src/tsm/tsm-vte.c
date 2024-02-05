@@ -174,6 +174,8 @@ struct tsm_vte {
 	tsm_vte_bell_cb bell_cb;
 	void *bell_data;
 
+	uint32_t dcs_func;
+
 	tsm_vte_osc_cb osc_cb;
 	void *osc_data;
 	unsigned int osc_len;
@@ -884,6 +886,8 @@ static void do_clear(struct tsm_vte *vte)
 	for (i = 0; i < CSI_ARG_MAX; ++i)
 		vte->csi_argv[i] = -1;
 	vte->csi_flags = 0;
+
+	vte->dcs_func = 0;
 
 	vte->osc_len = 0;
 	memset(vte->osc_arg, 0, sizeof(vte->osc_arg));
@@ -1923,6 +1927,90 @@ static uint32_t vte_map(struct tsm_vte *vte, uint32_t val)
 	return val;
 }
 
+static void do_dcs_start(struct tsm_vte *vte, uint32_t val) {
+	vte->dcs_func = val;
+}
+
+static void do_dcs(struct tsm_vte *vte) {
+	switch (vte->dcs_func) {
+	case 'q':
+		if (vte->csi_flags & CSI_CASH) {
+			/* DECRQSS - Request Status String */
+			dcs_decrqss(vte);
+		}
+		break;
+	default:
+		llog_debug(vte, "unhandled DCS sequence %c", vte->dcs_func);
+	}
+}
+
+static void dcs_decrqss(struct tsm_vte *vte)
+{
+	char buf1[64];
+	char buf2[64];
+	unsigned int len, i = 0;
+
+	vte->osc_arg[vte->osc_len] = 0;
+	if (!strcmp(vte->osc_arg, "m")) {
+		/* SGR request */
+		// responds with DCS 1 $ r Pt ST for valid requests,
+		// replacing the Pt with the corresponding CSI string
+		if (vte->cattr.bold) {
+			buf1[i] = ';';
+			buf1[i+1] = '1';
+			i += 2;
+		}
+		if (vte->cattr.italic) {
+			buf1[i] = ';';
+			buf1[i+1] = '3';
+			i += 2;
+		}
+		if (vte->cattr.underline) {
+			buf1[i] = ';';
+			buf1[i+1] = '4';
+			i += 2;
+		}
+		if (vte->cattr.blink) {
+			buf1[i] = ';';
+			buf1[i+1] = '5';
+			i += 2;
+		}
+		if (vte->cattr.inverse) {
+			buf1[i] = ';';
+			buf1[i+1] = '7';
+			i += 2;
+		}
+		if (vte->cattr.fccode >= 0) {
+			buf1[i] = ';';
+			i++;
+			if (vte->cattr.fccode > 9) {
+				buf1[i] = '0' + (vte->cattr.fccode / 10);
+				i++;
+			}
+			buf1[i] = '0' + (vte->cattr.fccode % 10);
+			i++;
+		}
+		if (vte->cattr.bccode >= 0) {
+			buf1[i] = ';';
+			i++;
+			if (vte->cattr.bccode > 9) {
+				buf1[i] = '0' + (vte->cattr.bccode / 10);
+				i++;
+			}
+			buf1[i] = '0' + (vte->cattr.bccode % 10);
+			i++;
+		}
+		buf1[i] = 0;
+
+		len = snprintf(buf2, sizeof(buf2), ESC "P1$r0%sm" ESC '\\', buf1);
+		if (len < sizeof(buf2)) {
+			vte_write(vte, buf2, len);
+		}
+	} else {
+		llog_debug(vte, "unhandled DECRQSS sequence %s", vte->osc_arg);
+	}
+}
+
 static void do_osc_collect(struct tsm_vte *vte, uint32_t val) {
 	char buf[4];
 	int len = tsm_ucs4_to_utf8(val, buf);
@@ -1978,10 +2066,13 @@ static void do_action(struct tsm_vte *vte, uint32_t data, int action)
 			do_csi(vte, data);
 			break;
 		case ACTION_DCS_START:
+			do_dcs_start(vte, data);
 			break;
 		case ACTION_DCS_COLLECT:
+			do_osc_collect(vte, data);
 			break;
 		case ACTION_DCS_END:
+			do_dcs(vte);
 			break;
 		case ACTION_OSC_START:
 			do_clear(vte);

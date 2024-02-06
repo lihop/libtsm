@@ -41,7 +41,19 @@ libtsm_add_test(test_screen
         check::check
 )
 
+libtsm_add_test(test_selection
+    LINK_LIBRARIES
+        tsm_test
+        check::check
+)
+
 libtsm_add_test(test_vte
+    LINK_LIBRARIES
+        tsm_test
+        check::check
+)
+
+libtsm_add_test(test_vte_mouse
     LINK_LIBRARIES
         tsm_test
         check::check

@@ -119,6 +119,11 @@ struct tsm_screen {
 	/* default attributes for new cells */
 	struct tsm_screen_attr def_attr;
 
+	/* save default attributes of main screen here when we switch to alt screen
+	 * on resize of the alt screen we need to init the new cells of the main
+	 * screen with these attributes and not the ones of the alt screen */
+	struct tsm_screen_attr def_attr_main;
+
 	/* ageing */
 	tsm_age_t age_cnt;		/* current age counter */
 	unsigned int age_reset : 1;	/* age-overflow flag */
@@ -140,6 +145,7 @@ struct tsm_screen {
 	struct line *sb_last;		/* last line; was moved last*/
 	unsigned int sb_max;		/* max-limit of lines in sb */
 	struct line *sb_pos;		/* current position in sb or NULL */
+	unsigned int sb_pos_num;	/* current numeric position in sb */
 	uint64_t sb_last_id;		/* last id given to sb-line */
 
 	/* cursor: positions are always in-bound, but cursor_x might be

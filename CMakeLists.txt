@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(libtsm
     LANGUAGES C
-    VERSION 4.0.1
+    VERSION 4.0.2
 )
 
 # Some meta data
@@ -21,6 +21,7 @@ endif()
 
 # Include utilities
 include(cmake/Utilities.cmake)
+include(cmake/JoinPaths.cmake)
 # For feature_summary
 include(FeatureSummary)
 
@@ -54,7 +55,6 @@ add_feature_info(BUILD_GTKTSM BUILD_GTKTSM "build the gtktsm example, it require
 #---------------------------------------------------------------------------------------
 # Additional find modules
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules/gnome-cmake/modules)
 
 # GNU filesystem layout
 include(GNUInstallDirs)
@@ -143,6 +143,8 @@ endif(BUILD_TESTING)
 # Installation of other files
 #---------------------------------------------------------------------------------------
 # pkgconfig file for backward compatibility
+join_paths(libdir_for_pc_file "\${exec_prefix}" "${CMAKE_INSTALL_LIBDIR}")
+join_paths(includedir_for_pc_file "\${prefix}" "${CMAKE_INSTALL_INCLUDEDIR}")
 configure_file(etc/libtsm.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libtsm.pc @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtsm.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 

@@ -671,7 +671,6 @@ int tsm_screen_copy_all(struct tsm_screen *con, char **out)
 	while (iter) {
 		pos += copy_line(iter, pos, 0, iter->size);
 
-		*pos++ = '\n';
 		iter = iter->next;
 	}
 
@@ -679,8 +678,6 @@ int tsm_screen_copy_all(struct tsm_screen *con, char **out)
 		iter = con->lines[i];
 
 		pos += copy_line(iter, pos, 0, con->size_x);
-
-		*pos++ = '\n';
 	}
 
 	/* return buffer */

@@ -63,10 +63,7 @@ unsigned int tsm_symbol_get_width(struct tsm_symbol_table *tbl,
 
 /* utf8 state machine */
 
-struct tsm_utf8_mach {
-	int state;
-	uint32_t ch;
-};
+struct tsm_utf8_mach;
 
 enum tsm_utf8_mach_state {
 	TSM_UTF8_START,
@@ -77,7 +74,8 @@ enum tsm_utf8_mach_state {
 	TSM_UTF8_EXPECT3,
 };
 
-void tsm_utf8_mach_init(struct tsm_utf8_mach *mach);
+int tsm_utf8_mach_new(struct tsm_utf8_mach **out);
+void tsm_utf8_mach_free(struct tsm_utf8_mach *mach);
 int tsm_utf8_mach_feed(struct tsm_utf8_mach *mach, char c);
 uint32_t tsm_utf8_mach_get(struct tsm_utf8_mach *mach);
 void tsm_utf8_mach_reset(struct tsm_utf8_mach *mach);
@@ -165,7 +163,7 @@ unsigned int tsm_screen_get_opts(struct tsm_screen *scr);
 
 static inline void screen_inc_age(struct tsm_screen *con)
 {
-	if (++con->age_cnt == 0) {
+	if (!++con->age_cnt) {
 		con->age_reset = 1;
 		++con->age_cnt;
 	}

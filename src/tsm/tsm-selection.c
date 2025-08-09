@@ -166,8 +166,8 @@ void tsm_screen_selection_reset(struct tsm_screen *con)
 		return;
 
 	screen_inc_age(con);
-
-	selection_age(con, &con->sel_start, &con->sel_end);
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
 
 	con->sel_active = false;
 }
@@ -181,15 +181,12 @@ void tsm_screen_selection_start(struct tsm_screen *con,
 		return;
 
 	screen_inc_age(con);
-
-	if (con->sel_active)
-		selection_age(con, &con->sel_start, &con->sel_end);
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
 
 	con->sel_active = true;
 	selection_set(con, &con->sel_start, posx, posy);
 	memcpy(&con->sel_end, &con->sel_start, sizeof(con->sel_end));
-
-	selection_age(con, &con->sel_start, &con->sel_end);
 }
 
 SHL_EXPORT
@@ -203,11 +200,10 @@ void tsm_screen_selection_target(struct tsm_screen *con,
 		return;
 
 	screen_inc_age(con);
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
 
-	memcpy(&old_end, &con->sel_end, sizeof(con->sel_end));
 	selection_set(con, &con->sel_end, posx, posy);
-
-	selection_age(con, &old_end, &con->sel_end);
 }
 
 static struct line *line_get(struct tsm_screen *con,

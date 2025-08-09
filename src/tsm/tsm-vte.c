@@ -164,7 +164,7 @@ struct tsm_vte {
 	char *palette_name;
 	bool backspace_sends_delete;
 
-	struct tsm_utf8_mach mach;
+	struct tsm_utf8_mach *mach;
 	unsigned long parse_cnt;
 
 	unsigned int state;
@@ -468,6 +468,7 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con, tsm_vte_write_cb w
 				tsm_log_t log, void *log_data)
 {
 	struct tsm_vte *vte;
+	int ret;
 
 	if (!out || !con || !write_cb)
 		return -EINVAL;
@@ -494,7 +495,9 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con, tsm_vte_write_cb w
 	vte->def_attr.bccode = TSM_COLOR_BACKGROUND;
 	to_rgb(vte, &vte->def_attr);
 
-	tsm_utf8_mach_init(&vte->mach);
+	ret = tsm_utf8_mach_new(&vte->mach);
+	if (ret)
+		goto err_free;
 
 	tsm_vte_reset(vte);
 	tsm_screen_erase_screen(vte->con, false);
@@ -503,6 +506,10 @@ int tsm_vte_new(struct tsm_vte **out, struct tsm_screen *con, tsm_vte_write_cb w
 	tsm_screen_ref(vte->con);
 	*out = vte;
 	return 0;
+
+err_free:
+	free(vte);
+	return ret;
 }
 
 SHL_EXPORT
@@ -526,6 +533,7 @@ void tsm_vte_unref(struct tsm_vte *vte)
 	llog_debug(vte, "destroying vte object");
 	free(vte->palette_name);
 	tsm_screen_unref(vte->con);
+	tsm_utf8_mach_free(vte->mach);
 	free(vte->custom_palette_storage);
 	free(vte);
 }
@@ -806,7 +814,7 @@ void tsm_vte_reset(struct tsm_vte *vte)
 	tsm_screen_reset(vte->con);
 	tsm_screen_set_flags(vte->con, TSM_SCREEN_AUTO_WRAP);
 
-	tsm_utf8_mach_reset(&vte->mach);
+	tsm_utf8_mach_reset(vte->mach);
 	vte->state = STATE_GROUND;
 	vte->gl = &vte->g0;
 	vte->gr = &vte->g1;
@@ -4436,9 +4444,9 @@ void tsm_vte_input(struct tsm_vte *vte, const char *u8, size_t len)
 		} else if (vte->flags & TSM_VTE_FLAG_8BIT_MODE) {
 			parse_data(vte, u8[i]);
 		} else {
-			state = tsm_utf8_mach_feed(&vte->mach, u8[i]);
+			state = tsm_utf8_mach_feed(vte->mach, u8[i]);
 			if (state == TSM_UTF8_ACCEPT || state == TSM_UTF8_REJECT) {
-				ucs4 = tsm_utf8_mach_get(&vte->mach);
+				ucs4 = tsm_utf8_mach_get(vte->mach);
 				parse_data(vte, ucs4);
 			}
 		}

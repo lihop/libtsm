@@ -431,6 +431,9 @@ static void screen_erase_region(struct tsm_screen *con,
 	unsigned int to;
 	struct line *line;
 
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
+
 	if (y_to >= con->size_y)
 		y_to = con->size_y - 1;
 	if (x_to >= con->size_x)
@@ -714,56 +717,6 @@ int tsm_screen_resize(struct tsm_screen *con, unsigned int x,
 			screen_cell_init(con, &con->alt_lines[j]->cells[i]);
 	}
 
-	if (!(con->flags & TSM_SCREEN_ALTERNATE)) {
-		unsigned int num = 0;
-		unsigned int last_y = con->size_y;
-
-		if (y > last_y)
-			last_y = y;
-
-		while (last_y && line_is_empty(con, con->main_lines[last_y - 1])) {
-			last_y--;
-
-			if (y < con->size_y && (con->cursor_y + 1) < con->size_y)
-				con->size_y--;
-			else if (con->sb_count > num) {
-				line_free(con->main_lines[con->line_num - 1]);
-				con->line_num--;
-				num++;
-			} else
-				break;
-		}
-
-		/* move lines from sb into screen */
-		if (num) {
-			/* force refresh of entire screen */
-			con->age = con->age_cnt;
-
-			memmove(&con->main_lines[num], &con->main_lines[0], sizeof(struct line*) * con->line_num);
-			con->line_num += num;
-			/*con->size_y += num;*/
-
-			con->cursor_y += num;
-
-			i = num;
-			while (i--) {
-				con->main_lines[i] = con->sb_last;
-
-				if (con->sb_last == con->sb_pos)
-					con->sb_pos = NULL;
-				con->sb_last = con->sb_last->prev;
-				con->sb_count--;
-
-				con->main_lines[i]->next = con->main_lines[i]->prev = NULL;
-				con->main_lines[i]->sb_id = 0;
-			}
-
-			if (con->sb_last)
-				con->sb_last->next = NULL;
-			else
-				con->sb_first = NULL;
-		}
-	}
 
 	/* xterm destroys margins on resize, so do we */
 	con->margin_top = 0;
@@ -1583,6 +1536,8 @@ void tsm_screen_delete_chars(struct tsm_screen *con, unsigned int num)
 		return;
 
 	screen_inc_age(con);
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
 
 	if (con->cursor_x >= con->size_x)
 		con->cursor_x = con->size_x - 1;

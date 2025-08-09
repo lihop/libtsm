@@ -58,7 +58,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include "wcwidth/wcwidth.h"
+#include "wcwidth.h"
 #include "libtsm.h"
 #include "libtsm-int.h"
 #include "shl-array.h"

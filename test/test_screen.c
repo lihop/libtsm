@@ -133,9 +133,141 @@ START_TEST(test_screen_null)
 }
 END_TEST
 
+START_TEST(test_screen_resize_alt_colors)
+{
+	struct tsm_screen *screen;
+	struct line *line;
+	int r, y, x;
+	struct tsm_screen_attr *attr;
+	struct tsm_screen_attr new_attr;
+
+	r = tsm_screen_new(&screen, NULL, NULL);
+	ck_assert_int_eq(r, 0);
+
+	/* start with an initial 2x2 screen */
+	r = tsm_screen_resize(screen, 2, 2);
+	ck_assert_int_eq(r, 0);
+
+	/* switch to alternate screen */
+	tsm_screen_set_flags(screen, TSM_SCREEN_ALTERNATE);
+
+	/* change background color to red */
+	memset(&new_attr, 0, sizeof(new_attr));
+	new_attr.br = 255;
+	new_attr.bg = 0;
+	new_attr.bb = 0;
+
+	tsm_screen_set_def_attr(screen, &new_attr);
+	tsm_screen_erase_screen(screen, false);
+
+	/* now all cells should be red */
+	for (y = 0; y < screen->size_y; y++) {
+		line = screen->lines[y];
+		for (x = 0; x < screen->size_x; x++) {
+			attr = &line->cells[x].attr;
+			ck_assert_int_eq(attr->br, 255);
+			ck_assert_int_eq(attr->bg, 0);
+			ck_assert_int_eq(attr->bb, 0);
+		}
+	}
+
+	/* enlarge to 4x4 while on alternate screen */
+	r = tsm_screen_resize(screen, 4, 4);
+	ck_assert_int_eq(r, 0);
+
+	/* leave alternate screen */
+	tsm_screen_reset_flags(screen, TSM_SCREEN_ALTERNATE);
+
+	/* now all cells should be black (including the new ones) */
+	for (y = 0; y < screen->size_y; y++) {
+		line = screen->lines[y];
+		for (x = 0; x < screen->size_x; x++) {
+			attr = &line->cells[x].attr;
+			ck_assert_int_eq(attr->br, 0);
+			ck_assert_int_eq(attr->bg, 0);
+			ck_assert_int_eq(attr->bb, 0);
+		}
+	}
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
+START_TEST(test_screen_sb_get_line_pos)
+{
+	struct tsm_screen *screen;
+	int r;
+
+	r = tsm_screen_new(&screen, NULL, NULL);
+	ck_assert_int_eq(r, 0);
+
+	r = tsm_screen_resize(screen, 5, 5);
+	ck_assert_int_eq(r, 0);
+
+	tsm_screen_set_max_sb(screen, 5);
+
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 0);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 0);
+
+	/* fill up screen */
+	tsm_screen_newline(screen);
+	tsm_screen_newline(screen);
+	tsm_screen_newline(screen);
+	tsm_screen_newline(screen);
+
+	/* create first entry in scrollback buffer */
+	tsm_screen_newline(screen);
+
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 1);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 1);
+
+	tsm_screen_newline(screen);
+
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 2);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 2);
+
+	tsm_screen_newline(screen);
+
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 3);
+
+	/* scroll up by one (third line of sb) */
+	tsm_screen_sb_up(screen, 1);
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 2);
+
+	/* scroll up by one (second line of sb) */
+	tsm_screen_sb_up(screen, 1);
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 1);
+
+	/* scroll up by one (first line of sb) */
+	tsm_screen_sb_up(screen, 1);
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 0);
+
+	/* scroll up beyond top end of buffer */
+	tsm_screen_sb_up(screen, 1);
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 0);
+
+	/* scroll out of scrollback buffer */
+	tsm_screen_sb_down(screen, 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_count(screen), 3);
+	ck_assert_int_eq(tsm_screen_sb_get_line_pos(screen), 3);
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
+
 TEST_DEFINE_CASE(misc)
 	TEST(test_screen_init)
 	TEST(test_screen_null)
+	TEST(test_screen_resize_alt_colors)
+	TEST(test_screen_sb_get_line_pos)
 TEST_END_CASE
 
 TEST_DEFINE(

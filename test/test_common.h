@@ -56,6 +56,8 @@
 								\
 		tc = tcase_create(#_name);			\
 
+#define CHECKED_FIXTURE(_setup, _teardown) tcase_add_checked_fixture(tc, _setup, _teardown);
+#define FIXTURE(_setup, _teardown) tcase_add_fixture(tc, _setup, _teardown);
 #define TEST(_name) tcase_add_test(tc, _name);
 
 #define TEST_END_CASE						\
@@ -102,5 +104,21 @@ static inline int test_run_suite(Suite *s)
 	{ \
 		return test_run_suite(_suite); \
 	}
+
+#ifndef ck_assert_mem_eq
+#include <string.h>
+#define ck_assert_mem_eq(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) == 0)
+#define ck_assert_mem_ne(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) != 0)
+#define ck_assert_mem_lt(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) < 0)
+#define ck_assert_mem_le(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) <= 0)
+#define ck_assert_mem_gt(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) > 0)
+#define ck_assert_mem_ge(_x, _y, _len) \
+	ck_assert(memcmp((_x), (_y), (_len)) >= 0)
+#endif
 
 #endif /* TEST_COMMON_H */

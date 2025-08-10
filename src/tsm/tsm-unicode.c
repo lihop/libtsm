@@ -58,7 +58,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
-#include "wcwidth/wcwidth.h"
+#include "wcwidth.h"
 #include "libtsm.h"
 #include "libtsm-int.h"
 #include "shl-array.h"
@@ -484,13 +484,35 @@ char *tsm_ucs4_to_utf8_alloc(const uint32_t *ucs4, size_t len, size_t *len_out)
  * so we avoid any non-ASCII+non-UTF8 input to prevent this.
  */
 
-void tsm_utf8_mach_init(struct tsm_utf8_mach *mach)
+struct tsm_utf8_mach {
+	int state;
+	uint32_t ch;
+};
+
+int tsm_utf8_mach_new(struct tsm_utf8_mach **out)
+{
+	struct tsm_utf8_mach *mach;
+
+	if (!out)
+		return -EINVAL;
+
+	mach = malloc(sizeof(*mach));
+	if (!mach)
+		return -ENOMEM;
+
+	memset(mach, 0, sizeof(*mach));
+	mach->state = TSM_UTF8_START;
+
+	*out = mach;
+	return 0;
+}
+
+void tsm_utf8_mach_free(struct tsm_utf8_mach *mach)
 {
 	if (!mach)
 		return;
 
-	memset(mach, 0, sizeof(*mach));
-	mach->state = TSM_UTF8_START;
+	free(mach);
 }
 
 int tsm_utf8_mach_feed(struct tsm_utf8_mach *mach, char ci)

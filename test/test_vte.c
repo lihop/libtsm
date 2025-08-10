@@ -27,6 +27,9 @@
 #include "libtsm.h"
 #include "test_common.h"
 
+#include <xkbcommon/xkbcommon-keysyms.h>
+#include <stdio.h>
+
 static void log_cb(void *data, const char *file, int line, const char *func, const char *subs,
 				   unsigned int sev, const char *format, va_list args)
 {
@@ -89,6 +92,10 @@ START_TEST(test_vte_null)
 	ck_assert_int_eq(r, -EINVAL);
 
 	tsm_vte_get_def_attr(NULL, NULL);
+	tsm_vte_get_flags(NULL);
+
+	tsm_vte_get_mouse_mode(NULL);
+	tsm_vte_get_mouse_event(NULL);
 
 	tsm_vte_reset(NULL);
 	tsm_vte_hard_reset(NULL);
@@ -157,10 +164,183 @@ START_TEST(test_vte_custom_palette)
 }
 END_TEST
 
+static void checking_write_cb(struct tsm_vte *vte, const char *u8, size_t len, void *data)
+{
+	ck_assert_ptr_ne(vte, NULL);
+	ck_assert_ptr_ne(u8, NULL);
+	ck_assert_uint_gt(len, 0);
+
+	ck_assert_mem_eq(u8, data, len);
+}
+
+START_TEST(test_vte_backspace_key)
+{
+	struct tsm_screen *screen;
+	struct tsm_vte *vte;
+	char expected_output;
+	int r;
+
+	r = tsm_screen_new(&screen, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	r = tsm_vte_new(&vte, screen, checking_write_cb, &expected_output, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	expected_output = '\010';
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 010, 0, 010);
+	ck_assert(r);
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 0177, 0, 0177);
+	ck_assert(r);
+
+	tsm_vte_set_backspace_sends_delete(vte, true);
+
+	expected_output = '\177';
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 010, 0, 010);
+	ck_assert(r);
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 0177, 0, 0177);
+	ck_assert(r);
+
+	tsm_vte_set_backspace_sends_delete(vte, false);
+
+	expected_output = '\010';
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 010, 0, 010);
+	ck_assert(r);
+	r = tsm_vte_handle_keyboard(vte, XKB_KEY_BackSpace, 0177, 0, 0177);
+	ck_assert(r);
+
+	tsm_vte_unref(vte);
+	vte = NULL;
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
+START_TEST(test_vte_get_flags)
+{
+	struct tsm_screen *screen;
+	struct tsm_vte *vte;
+	char expected_output;
+	int r, flags;
+
+	r = tsm_screen_new(&screen, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	r = tsm_vte_new(&vte, screen, checking_write_cb, &expected_output, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	flags = tsm_vte_get_flags(vte);
+	ck_assert(!(flags & TSM_VTE_FLAG_CURSOR_KEY_MODE));
+
+	// enable cursor key mode
+	tsm_vte_input(vte, "\033[?1h", 5);
+
+	flags = tsm_vte_get_flags(vte);
+	ck_assert(flags & TSM_VTE_FLAG_CURSOR_KEY_MODE);
+
+	tsm_vte_unref(vte);
+	vte = NULL;
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
+/* Regression test for https://github.com/Aetf/libtsm/issues/26 */
+START_TEST(test_vte_decrqm_no_reset)
+{
+	struct tsm_screen *screen;
+	struct tsm_vte *vte;
+	int r;
+	unsigned int flags;
+
+	r = tsm_screen_new(&screen, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	r = tsm_vte_new(&vte, screen, write_cb, NULL, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	/* switch terminal to alternate screen mode */
+	tsm_vte_input(vte, "\033[?1049h", 8);
+
+	flags = tsm_screen_get_flags(screen);
+	ck_assert(flags & TSM_SCREEN_ALTERNATE);
+
+	/* send DECRQM SRM (12) request */
+	tsm_vte_input(vte, "\033[?12$p", 7);
+
+	/* terminal should still be in alternate screen mode */
+	flags = tsm_screen_get_flags(screen);
+	ck_assert(flags & TSM_SCREEN_ALTERNATE);
+
+	tsm_vte_unref(vte);
+	vte = NULL;
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
+#define assert_tsm_screen_cursor_pos(screen, x1, y1)                 \
+	do {                                                             \
+		ck_assert_int_eq(x1, tsm_screen_get_cursor_x(screen));       \
+		ck_assert_int_eq(y1, tsm_screen_get_cursor_y(screen));       \
+	} while(0)
+
+/* test for https://github.com/Aetf/kmscon/issues/78 */
+START_TEST(test_vte_csi_cursor_up_down)
+{
+	struct tsm_screen *screen;
+	struct tsm_vte *vte;
+	int r;
+	int h;
+	char csi_cmd[64];
+
+	r = tsm_screen_new(&screen, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	r = tsm_vte_new(&vte, screen, write_cb, NULL, log_cb, NULL);
+	ck_assert_int_eq(r, 0);
+
+	tsm_vte_input(vte, "\n123", 4);
+	assert_tsm_screen_cursor_pos(screen, 3, 1);
+
+	// cursor move up, first col
+	tsm_vte_input(vte, "\033[1F", 4);
+	assert_tsm_screen_cursor_pos(screen, 0, 0);
+
+	// cursor move down, first col
+	tsm_vte_input(vte, "\033[1E", 4);
+	assert_tsm_screen_cursor_pos(screen, 0, 1);
+
+	h = tsm_screen_get_height(screen);
+
+	// move cursor up out of screen, should at first line
+	sprintf(csi_cmd, "\033[%dF", h + 10);
+	tsm_vte_input(vte, csi_cmd, strlen(csi_cmd));
+	assert_tsm_screen_cursor_pos(screen, 0, 0);
+
+	// move cursor down out of screen, should at last line
+	sprintf(csi_cmd, "\033[%dE", h + 10);
+	tsm_vte_input(vte, csi_cmd, strlen(csi_cmd));
+	assert_tsm_screen_cursor_pos(screen, 0, h - 1);
+
+	tsm_vte_unref(vte);
+	vte = NULL;
+
+	tsm_screen_unref(screen);
+	screen = NULL;
+}
+END_TEST
+
 TEST_DEFINE_CASE(misc)
 	TEST(test_vte_init)
-    TEST(test_vte_null)
-    TEST(test_vte_custom_palette)
+	TEST(test_vte_null)
+	TEST(test_vte_custom_palette)
+	TEST(test_vte_backspace_key)
+	TEST(test_vte_get_flags)
+	TEST(test_vte_decrqm_no_reset)
+	TEST(test_vte_csi_cursor_up_down)
 TEST_END_CASE
 
 // clang-format off

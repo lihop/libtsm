@@ -224,10 +224,13 @@ static void link_to_scrollback(struct tsm_screen *con, struct line *line)
 		if (con->sb_pos) {
 			if (con->sb_pos == tmp ||
 			    !(con->flags & TSM_SCREEN_FIXED_POS)) {
-				if (con->sb_pos->next)
+				if (con->sb_pos->next) {
 					con->sb_pos = con->sb_pos->next;
-				else
+					++con->sb_pos_num;
+				} else {
 					con->sb_pos = line;
+					con->sb_pos_num = 0;
+				}
 			}
 		}
 
@@ -247,12 +250,17 @@ static void link_to_scrollback(struct tsm_screen *con, struct line *line)
 	line->sb_id = ++con->sb_last_id;
 	line->next = NULL;
 	line->prev = con->sb_last;
-	if (con->sb_last)
+	if (con->sb_last) {
 		con->sb_last->next = line;
-	else
+	} else {
 		con->sb_first = line;
+	}
 	con->sb_last = line;
 	++con->sb_count;
+
+	if (con->sb_pos == NULL) {
+		con->sb_pos_num = con->sb_count;
+	}
 }
 
 static void screen_scroll_up(struct tsm_screen *con, unsigned int num)
@@ -423,6 +431,9 @@ static void screen_erase_region(struct tsm_screen *con,
 	unsigned int to;
 	struct line *line;
 
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
+
 	if (y_to >= con->size_y)
 		y_to = con->size_y - 1;
 	if (x_to >= con->size_x)
@@ -535,6 +546,7 @@ void tsm_screen_unref(struct tsm_screen *con)
 		line_free(con->main_lines[i]);
 		line_free(con->alt_lines[i]);
 	}
+
 	free(con->main_lines);
 	free(con->alt_lines);
 	free(con->tab_ruler);
@@ -705,56 +717,6 @@ int tsm_screen_resize(struct tsm_screen *con, unsigned int x,
 			screen_cell_init(con, &con->alt_lines[j]->cells[i]);
 	}
 
-	if (!(con->flags & TSM_SCREEN_ALTERNATE)) {
-		unsigned int num = 0;
-		unsigned int last_y = con->size_y;
-
-		if (y > last_y)
-			last_y = y;
-
-		while (last_y && line_is_empty(con, con->main_lines[last_y - 1])) {
-			last_y--;
-
-			if (y < con->size_y && (con->cursor_y + 1) < con->size_y)
-				con->size_y--;
-			else if (con->sb_count > num) {
-				line_free(con->main_lines[con->line_num - 1]);
-				con->line_num--;
-				num++;
-			} else
-				break;
-		}
-
-		/* move lines from sb into screen */
-		if (num) {
-			/* force refresh of entire screen */
-			con->age = con->age_cnt;
-
-			memmove(&con->main_lines[num], &con->main_lines[0], sizeof(struct line*) * con->line_num);
-			con->line_num += num;
-			/*con->size_y += num;*/
-
-			con->cursor_y += num;
-
-			i = num;
-			while (i--) {
-				con->main_lines[i] = con->sb_last;
-
-				if (con->sb_last == con->sb_pos)
-					con->sb_pos = NULL;
-				con->sb_last = con->sb_last->prev;
-				con->sb_count--;
-
-				con->main_lines[i]->next = con->main_lines[i]->prev = NULL;
-				con->main_lines[i]->sb_id = 0;
-			}
-
-			if (con->sb_last)
-				con->sb_last->next = NULL;
-			else
-				con->sb_first = NULL;
-		}
-	}
 
 	/* xterm destroys margins on resize, so do we */
 	con->margin_top = 0;
@@ -891,6 +853,7 @@ void tsm_screen_clear_sb(struct tsm_screen *con)
 	con->sb_last = NULL;
 	con->sb_count = 0;
 	con->sb_pos = NULL;
+	con->sb_pos_num = 0;
 
 	if (con->sel_active) {
 		if (con->sel_start.line) {
@@ -920,10 +883,12 @@ void tsm_screen_sb_up(struct tsm_screen *con, unsigned int num)
 				return;
 
 			con->sb_pos = con->sb_pos->prev;
+			--con->sb_pos_num;
 		} else if (!con->sb_last) {
 			return;
 		} else {
 			con->sb_pos = con->sb_last;
+			con->sb_pos_num = con->sb_count - 1;
 		}
 	}
 }
@@ -939,8 +904,10 @@ void tsm_screen_sb_down(struct tsm_screen *con, unsigned int num)
 	con->age = con->age_cnt;
 
 	while (num--) {
-		if (con->sb_pos)
+		if (con->sb_pos) {
 			con->sb_pos = con->sb_pos->next;
+			++con->sb_pos_num;
+		}
 		else
 			return;
 	}
@@ -977,6 +944,25 @@ void tsm_screen_sb_reset(struct tsm_screen *con)
 	con->age = con->age_cnt;
 
 	con->sb_pos = NULL;
+	con->sb_pos_num = 0;
+}
+
+unsigned int tsm_screen_sb_get_line_count(struct tsm_screen *con)
+{
+	if (!con) {
+		return 0;
+	}
+
+	return con->sb_count;
+}
+
+unsigned int tsm_screen_sb_get_line_pos(struct tsm_screen *con)
+{
+	if (!con) {
+		return 0;
+	}
+
+	return con->sb_pos_num;
 }
 
 SHL_EXPORT
@@ -1550,6 +1536,8 @@ void tsm_screen_delete_chars(struct tsm_screen *con, unsigned int num)
 		return;
 
 	screen_inc_age(con);
+	/* TODO: more sophisticated ageing */
+	con->age = con->age_cnt;
 
 	if (con->cursor_x >= con->size_x)
 		con->cursor_x = con->size_x - 1;

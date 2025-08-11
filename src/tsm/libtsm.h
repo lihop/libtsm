@@ -166,6 +166,8 @@ struct tsm_screen_attr {
 	uint8_t br;			/* background red */
 	uint8_t bg;			/* background green */
 	uint8_t bb;			/* background blue */
+	int8_t orig_fgr;		/* original SGR foreground code for DECRQSS */
+	int8_t orig_bgr;		/* original SGR background code for DECRQSS */
 	unsigned int bold : 1;		/* bold character */
 	unsigned int italic : 1;	/* italics character */
 	unsigned int underline : 1;	/* underlined character */

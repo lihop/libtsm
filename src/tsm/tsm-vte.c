@@ -833,6 +833,8 @@ void tsm_vte_reset(struct tsm_vte *vte)
 	vte->mouse_last_row = 0;
 
 	memcpy(&vte->cattr, &vte->def_attr, sizeof(vte->cattr));
+	vte->cattr.orig_fgr = 0;
+	vte->cattr.orig_bgr = 0;
 	to_rgb(vte, &vte->cattr);
 	tsm_screen_set_def_attr(vte->con, &vte->def_attr);
 
@@ -1247,6 +1249,15 @@ static void csi_attribute(struct tsm_vte *vte)
 	}
 
 	for (i = 0; i < vte->csi_argc; ++i) {
+		/* Store original SGR codes for DECRQSS reporting */
+		if ((vte->csi_argv[i] >= 30 && vte->csi_argv[i] <= 37) ||
+		    (vte->csi_argv[i] >= 90 && vte->csi_argv[i] <= 97)) {
+			vte->cattr.orig_fgr = vte->csi_argv[i];
+		} else if ((vte->csi_argv[i] >= 40 && vte->csi_argv[i] <= 47) ||
+		           (vte->csi_argv[i] >= 100 && vte->csi_argv[i] <= 107)) {
+			vte->cattr.orig_bgr = vte->csi_argv[i];
+		}
+
 		switch (vte->csi_argv[i]) {
 		case -1:
 			break;
@@ -1258,6 +1269,8 @@ static void csi_attribute(struct tsm_vte *vte)
 			vte->cattr.underline = 0;
 			vte->cattr.inverse = 0;
 			vte->cattr.blink = 0;
+			vte->cattr.orig_fgr = 0;
+			vte->cattr.orig_bgr = 0;
 			break;
 		case 1:
 			vte->cattr.bold = 1;
@@ -1315,6 +1328,7 @@ static void csi_attribute(struct tsm_vte *vte)
 			break;
 		case 39:
 			copy_fcolor(&vte->cattr, &vte->def_attr);
+			vte->cattr.orig_fgr = 0;
 			break;
 		case 40:
 			vte->cattr.bccode = TSM_COLOR_BLACK;
@@ -1342,6 +1356,7 @@ static void csi_attribute(struct tsm_vte *vte)
 			break;
 		case 49:
 			copy_bcolor(&vte->cattr, &vte->def_attr);
+			vte->cattr.orig_bgr = 0;
 			break;
 		case 90:
 			vte->cattr.fccode = TSM_COLOR_DARK_GREY;
@@ -2258,25 +2273,15 @@ static void dcs_decrqss(struct tsm_vte *vte)
 			buf1[i + 1] = '7';
 			i += 2;
 		}
-		if (vte->cattr.fccode >= 0) {
-			buf1[i] = ';';
-			i++;
-			if (vte->cattr.fccode > 9) {
-				buf1[i] = '0' + (vte->cattr.fccode / 10);
-				i++;
-			}
-			buf1[i] = '0' + (vte->cattr.fccode % 10);
-			i++;
+		if (vte->cattr.orig_fgr > 0 && vte->cattr.fccode != TSM_COLOR_FOREGROUND) {
+			len = snprintf(buf1 + i, sizeof(buf1) - i, ";%d", vte->cattr.orig_fgr);
+			if (len < sizeof(buf1) - i)
+				i += len;
 		}
-		if (vte->cattr.bccode >= 0) {
-			buf1[i] = ';';
-			i++;
-			if (vte->cattr.bccode > 9) {
-				buf1[i] = '0' + (vte->cattr.bccode / 10);
-				i++;
-			}
-			buf1[i] = '0' + (vte->cattr.bccode % 10);
-			i++;
+		if (vte->cattr.orig_bgr > 0 && vte->cattr.bccode != TSM_COLOR_BACKGROUND) {
+			len = snprintf(buf1 + i, sizeof(buf1) - i, ";%d", vte->cattr.orig_bgr);
+			if (len < sizeof(buf1) - i)
+				i += len;
 		}
 		buf1[i] = 0;
 

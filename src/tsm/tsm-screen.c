@@ -717,6 +717,24 @@ int tsm_screen_resize(struct tsm_screen *con, unsigned int x,
 			screen_cell_init(con, &con->alt_lines[j]->cells[i]);
 	}
 
+	if (!(con->flags & TSM_SCREEN_ALTERNATE)) {
+		unsigned int num = 0;
+		unsigned int last_y = con->size_y;
+
+		if (y > last_y)
+			last_y = y;
+
+		while (last_y && line_is_empty(con, con->main_lines[last_y - 1])) {
+			last_y--;
+
+			if (y < con->size_y && (con->cursor_y + 1) < con->size_y) {
+				con->size_y--;
+			} else {
+				/* Instead of complex scrollback manipulation, just break */
+				break;
+			}
+		}
+	}
 
 	/* xterm destroys margins on resize, so do we */
 	con->margin_top = 0;

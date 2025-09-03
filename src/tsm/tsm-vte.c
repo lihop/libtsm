@@ -4598,6 +4598,7 @@ bool tsm_vte_handle_keyboard(struct tsm_vte *vte, uint32_t keysym, uint32_t asci
 		switch (sym) {
 		case XKB_KEY_2:
 		case XKB_KEY_space:
+		case XKB_KEY_at:
 			vte_write(vte, "\x00", 1);
 			return true;
 		case XKB_KEY_a:
@@ -4722,14 +4723,16 @@ bool tsm_vte_handle_keyboard(struct tsm_vte *vte, uint32_t keysym, uint32_t asci
 		case XKB_KEY_6:
 		case XKB_KEY_grave:
 		case XKB_KEY_asciitilde:
+		case XKB_KEY_asciicircum:
 			vte_write(vte, "\x1e", 1);
 			return true;
 		case XKB_KEY_7:
 		case XKB_KEY_slash:
-		case XKB_KEY_question:
+		case XKB_KEY_underscore:
 			vte_write(vte, "\x1f", 1);
 			return true;
 		case XKB_KEY_8:
+		case XKB_KEY_question:
 			vte_write(vte, "\x7f", 1);
 			return true;
 		}

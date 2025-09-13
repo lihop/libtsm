@@ -599,14 +599,35 @@ unsigned int tsm_screen_get_height(struct tsm_screen *con)
 
 static bool line_is_empty(const struct tsm_screen *con, const struct line *line)
 {
-	unsigned int i;
+    unsigned int i;
 
-	for (i = 0; i < line->size && i < con->size_x; i++) {
-		if (line->cells[i].ch)
-			return false;
-	}
+    /*
+     * A line is considered empty if all visible cells contain no symbol
+     * OR they contain only a plain ASCII space with default attributes.
+     *
+     * Rationale:
+     * - Some producers (notably Windows shells via ConPTY) clear a line by
+     *   writing spaces instead of emitting an EL (Erase in Line) sequence.
+     *   Those lines are visually empty but previously were treated as
+     *   non-empty by the old check ("ch != 0"). During a shrink-resize, this
+     *   caused spurious scroll-up and duplicated lines in scrollback.
+     */
+    for (i = 0; i < line->size && i < con->size_x; i++) {
+        const struct cell *c = &line->cells[i];
+        if (c->ch == 0)
+            continue; /* Truly empty cell */
 
-	return true;
+        /* Treat plain spaces with default attributes as empty. */
+        if (c->ch == ' ') {
+            if (memcmp(&c->attr, &con->def_attr, sizeof(c->attr)) == 0)
+                continue;
+        }
+
+        /* Any other content means the line is not empty. */
+        return false;
+    }
+
+    return true;
 }
 
 SHL_EXPORT

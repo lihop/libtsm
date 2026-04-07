@@ -10,6 +10,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 struct width_interval {
@@ -458,7 +459,7 @@ static bool intable(struct width_interval* table, int table_length, int c) {
         return false;
 }
 
-int tsm_wcwidth(wchar_t ucs) {
+static int wcwidth_codepoint(uint32_t ucs) {
 	// NOTE: created by hand, there isn't anything identifiable other than
 	// general Cf category code to identify these, and some characters in Cf
 	// category code are of non-zero width.
@@ -475,8 +476,23 @@ int tsm_wcwidth(wchar_t ucs) {
         // C0/C1 control characters.
         if (ucs < 32 || (0x07F <= ucs && ucs < 0x0A0)) return -1;
 
+        // Private Use Area glyphs have no Unicode-defined terminal width. Treat
+        // them as single-cell by default so patched terminal fonts can use
+        // icon blocks without inheriting stale Nerd Font wide-range assumptions.
+        if ((0xE000 <= ucs && ucs <= 0xF8FF) ||
+            (0xF0000 <= ucs && ucs <= 0xFFFFD) ||
+            (0x100000 <= ucs && ucs <= 0x10FFFD)) return 1;
+
         // Combining characters with zero width.
         if (intable(ZERO_WIDTH, sizeof(ZERO_WIDTH)/sizeof(struct width_interval), ucs)) return 0;
 
         return intable(WIDE_EASTASIAN, sizeof(WIDE_EASTASIAN)/sizeof(struct width_interval), ucs) ? 2 : 1;
+}
+
+int tsm_wcwidth(wchar_t ucs) {
+        return wcwidth_codepoint((uint32_t)ucs);
+}
+
+int tsm_ucs4_wcwidth(uint32_t ucs) {
+        return wcwidth_codepoint(ucs);
 }
